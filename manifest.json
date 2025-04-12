@@ -1,11 +1,12 @@
 {
-  "manifest_version": 2,
-  "name": "Your Chrome Extension Name",
-  "version": "0.1",
+  "manifest_version": 3,
+  "name": "Hello World Extension",
+  "version": "1.0",
   "author": "First Last",
-  "description": "A description about your Chrome Extension...",
+  "description": "A simple Hello World Chrome extension",
   "permissions": [
-    ""
+    "activeTab",
+    "scripting"
   ],
   "content_scripts": [
     {
@@ -18,13 +19,15 @@
     }
   ],
   "background": {
-    "scripts": [
-      "background.js"
-    ]
+    "service_worker": "background.js"
   },
-  "browser_action": {
-    "default_icon": "logo.png",
+  "action": {
     "default_popup": "index.html",
-    "default_title": "A tooltip popup description when you hover over the Chrome Extension icon."
+    "default_icon": "images/icon.svg"
+  },
+  "icons": {
+    "16": "images/icon.svg",
+    "48": "images/icon.svg",
+    "128": "images/icon.svg"
   }
 }

@@ -5,3 +5,5 @@
 // Project Repository URI: https://github.com/
 // Description: Handles all the webpage level activities (e.g. manipulating page data, etc.)
 // License: MIT
+
+console.log('Hello World Extension is active!');
