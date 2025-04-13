@@ -1,3 +1,6 @@
+// Import color mapping functionality
+import { colorMap } from './colorMap.js';
+
 // Function to get all colors used in the page
 async function getAllColors() {
   try {
@@ -70,9 +73,14 @@ function getColorName(hex) {
   return getClosestColorName(hex);
 }
 
-// Function to show the "Copied" toast
-function showCopiedToast() {
+// Function to show the toast notification
+function showToast(message) {
   const toast = document.getElementById('copied-toast');
+  if (!toast) {
+    console.error('Toast element not found');
+    return;
+  }
+  toast.textContent = message;
   toast.classList.add('show');
   setTimeout(() => {
     toast.classList.remove('show');
@@ -83,7 +91,7 @@ function showCopiedToast() {
 async function copyToClipboard(text) {
   try {
     await navigator.clipboard.writeText(text);
-    showCopiedToast();
+    showToast(`Color ${text} copied!`);
   } catch (err) {
     console.error('Failed to copy text:', err);
   }
@@ -199,6 +207,222 @@ function hexToRgb(hex) {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
+// Function to get all gradients from the page
+async function getAllGradients() {
+  try {
+    // Get the current active tab
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    
+    if (!tab) {
+      console.error('No active tab found');
+      return [];
+    }
+    
+    // Send message to content script to get gradients
+    return new Promise((resolve) => {
+      chrome.tabs.sendMessage(tab.id, { action: 'getGradients' }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('Error communicating with content script:', chrome.runtime.lastError);
+          resolve([]);
+          return;
+        }
+        
+        if (!response) {
+          console.error('No response received from content script');
+          resolve([]);
+          return;
+        }
+        
+        if (!response.gradients) {
+          console.error('No gradients array in response:', response);
+          resolve([]);
+          return;
+        }
+        
+        try {
+          // Ensure response.gradients is an array
+          if (!Array.isArray(response.gradients)) {
+            console.error('Expected gradients to be an array, got:', response.gradients);
+            resolve([]);
+            return;
+          }
+          
+          console.log('Successfully processed gradients:', response.gradients);
+          resolve(response.gradients);
+        } catch (error) {
+          console.error('Error processing gradients data:', error);
+          resolve([]);
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Error in getAllGradients:', error);
+    return [];
+  }
+}
+
+// Function to display gradients
+async function displayGradients() {
+  const grid = document.getElementById('colors-grid');
+  grid.innerHTML = '';
+  
+  // Show skeleton loading state
+  grid.innerHTML = `
+    <div class="color-family">
+      <div class="skeleton skeleton-family-header"></div>
+      <div class="colors-grid">
+        ${Array(6).fill(`
+          <div class="gradient-card skeleton-color-card">
+            <div class="skeleton skeleton-color-swatch"></div>
+            <div class="skeleton-color-info">
+              <div class="skeleton skeleton-color-name"></div>
+              <div class="skeleton skeleton-color-hex"></div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  try {
+    const gradients = await getAllGradients();
+    
+    // Clear existing content
+    grid.innerHTML = '';
+    
+    if (gradients.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-state">
+          <p>No gradients found on this page</p>
+          <p class="empty-state-subtitle">Try navigating to a different webpage and click the extension again</p>
+        </div>
+      `;
+      return;
+    }
+    
+    // Sort gradients by usage count
+    const sortedGradients = gradients.sort((a, b) => b[1].count - a[1].count);
+    
+    // Create gradient cards
+    sortedGradients.forEach(([normalizedKey, gradientData]) => {
+      // Ensure gradientData and gradientData.original are valid before creating the card
+      if (gradientData && typeof gradientData.original === 'string') {
+        const card = createGradientCard(gradientData.original, gradientData.count);
+        grid.appendChild(card);
+      } else {
+        console.warn('Skipping invalid gradient data:', gradientData);
+      }
+    });
+  } catch (error) {
+    console.error('Error displaying gradients:', error);
+    grid.innerHTML = `
+      <div class="empty-state">
+        <p>Error loading gradients</p>
+        <p class="empty-state-subtitle">Please try refreshing the page or navigating to a different webpage</p>
+      </div>
+    `;
+  }
+}
+
+// Function to create gradient card
+function createGradientCard(gradient, count) {
+  // Add check to ensure gradient is a string
+  if (typeof gradient !== 'string') {
+    console.error('Invalid gradient type passed to createGradientCard:', typeof gradient, gradient);
+    // Return an empty div or some error indicator element
+    const errorCard = document.createElement('div');
+    errorCard.textContent = 'Error loading gradient';
+    errorCard.style.color = 'red';
+    errorCard.style.padding = 'var(--spacing-md)';
+    return errorCard;
+  }
+
+  const card = document.createElement('div');
+  card.className = 'gradient-card';
+  
+  const swatch = document.createElement('div');
+  swatch.className = 'gradient-swatch';
+  swatch.style.background = gradient;
+  
+  const info = document.createElement('div');
+  info.className = 'gradient-info';
+  
+  const name = document.createElement('div');
+  name.className = 'gradient-name';
+  name.textContent = getGradientName(gradient);
+  
+  const type = document.createElement('div');
+  type.className = 'gradient-type';
+  type.textContent = getGradientType(gradient);
+  
+  const colors = document.createElement('div');
+  colors.className = 'gradient-colors';
+  
+  const gradientColors = gradient.match(/rgba?\([^)]+\)|#[0-9a-f]{3,8}/gi) || [];
+  gradientColors.forEach(color => {
+    const colorDiv = document.createElement('div');
+    colorDiv.className = 'gradient-color';
+    colorDiv.style.backgroundColor = color;
+    colors.appendChild(colorDiv);
+  });
+  
+  const countDiv = document.createElement('div');
+  countDiv.className = 'gradient-count';
+  countDiv.textContent = `${count} uses`;
+  
+  info.appendChild(name);
+  info.appendChild(type);
+  info.appendChild(colors);
+  info.appendChild(countDiv);
+  
+  card.appendChild(swatch);
+  card.appendChild(info);
+  
+  // Add click handler to copy gradient
+  card.addEventListener('click', () => {
+    navigator.clipboard.writeText(gradient);
+    showToast('Gradient copied to clipboard!');
+  });
+  
+  return card;
+}
+
+// Function to get gradient name
+function getGradientName(gradient) {
+  // Try to extract colors first, even if the gradient is invalid CSS
+  let colors = gradient.match(/rgba?\([^)]+\)|#[0-9a-f]{3,8}/gi) || [];
+  
+  // If no colors found, maybe it's a malformed string? Attempt basic cleanup
+  if (colors.length === 0) {
+    const potentialColors = gradient.split(/,|\s+/).filter(part => part.startsWith('#') || part.startsWith('rgb'));
+    if (potentialColors.length > 0) colors = potentialColors;
+  }
+  
+  if (colors.length === 0) return 'Unknown Gradient'; // Fallback
+  
+  return colors.map(color => {
+    // Convert RGB to hex if needed
+    if (color.startsWith('rgb')) {
+      const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+      if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        color = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+      }
+    }
+    return colorMap[color.toLowerCase()] || color;
+  }).join(' → ');
+}
+
+// Function to get gradient type
+function getGradientType(gradient) {
+  if (gradient.includes('linear-gradient')) return 'Linear';
+  if (gradient.includes('radial-gradient')) return 'Radial';
+  if (gradient.includes('conic-gradient')) return 'Conic';
+  return 'Gradient';
+}
+
 // Function to handle tab switching
 function setupTabs() {
   const tabs = document.querySelectorAll('.tab-button');
@@ -206,6 +430,7 @@ function setupTabs() {
   const colorTheme = document.getElementById('color-theme');
   const colorFamily = document.getElementById('color-family');
   const grid = document.getElementById('colors-grid');
+  const selectors = document.querySelector('.color-selectors');
   
   // Function to update colors based on current selections
   const updateColors = () => {
@@ -289,12 +514,13 @@ function setupTabs() {
       // Handle different tab content
       const tabType = tab.dataset.tab;
       if (tabType === 'colors') {
+        selectors.style.display = 'flex';
         updateColors();
       } else if (tabType === 'gradient') {
-        // TODO: Implement gradient view
-        grid.innerHTML = '<div class="empty-state"><p>Gradient view coming soon!</p></div>';
+        selectors.style.display = 'none';
+        displayGradients();
       } else if (tabType === 'export') {
-        // TODO: Implement export view
+        selectors.style.display = 'none';
         grid.innerHTML = '<div class="empty-state"><p>Export view coming soon!</p></div>';
       }
     });

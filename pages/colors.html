@@ -16,6 +16,10 @@
       margin-bottom: var(--spacing-lg);
       border-bottom: 1px solid var(--color-border);
       padding-bottom: var(--spacing-xs);
+      position: sticky;
+      top: 58px;
+      background-color: var(--color-background);
+      z-index: 10;
     }
 
     .tab-button {
@@ -300,6 +304,93 @@
       margin-bottom: var(--spacing-md);
       border-radius: var(--radius-sm);
     }
+
+    /* Gradient styles */
+    .gradient-card {
+      background: var(--color-surface);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .gradient-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .gradient-swatch {
+      height: 140px;
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .gradient-swatch::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%),
+                  linear-gradient(-45deg, rgba(255,255,255,0.1) 25%, transparent 25%);
+      background-size: 10px 10px;
+      opacity: 0.1;
+    }
+
+    .gradient-info {
+      padding: var(--spacing-md);
+      background: var(--color-surface);
+    }
+
+    .gradient-name {
+      font-size: 11px;
+      font-weight: 500;
+      margin-bottom: var(--spacing-xs);
+      color: var(--color-text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .gradient-type {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--color-text-primary);
+      font-weight: 600;
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .gradient-colors {
+      display: flex;
+      gap: var(--spacing-xs);
+      margin-top: var(--spacing-xs);
+      height: 24px;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+
+    .gradient-color {
+      height: 100%;
+      flex: 1;
+      position: relative;
+    }
+
+    .gradient-color::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%),
+                  linear-gradient(-45deg, rgba(255,255,255,0.1) 25%, transparent 25%);
+      background-size: 6px 6px;
+      opacity: 0.5;
+    }
+
+    .gradient-count {
+      font-size: 10px;
+      color: var(--color-text-tertiary);
+      margin-top: var(--spacing-xs);
+    }
   </style>
 </head>
 <body>
@@ -318,7 +409,7 @@
   </div>
 
   <div class="tabs">
-    <button class="tab-button active" data-tab="colors">Colors</button>
+    <button class="tab-button active" data-tab="colors">Solid</button>
     <button class="tab-button" data-tab="gradient">Gradient</button>
     <button class="tab-button" data-tab="export">Export</button>
   </div>

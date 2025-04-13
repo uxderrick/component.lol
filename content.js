@@ -191,6 +191,73 @@ function countComponents() {
   };
 }
 
+// Function to extract gradients from the webpage
+function extractGradients() {
+  const gradientMap = new Map();
+  
+  // Function to add gradient to map with count
+  function addGradient(gradient) {
+    if (!gradient) return;
+    const normalizedGradientKey = normalizeGradient(gradient); // Use normalized string as key
+    let existingEntry = gradientMap.get(normalizedGradientKey);
+    
+    if (existingEntry) {
+      existingEntry.count++;
+    } else {
+      // Store the *original* gradient string for rendering, along with count
+      gradientMap.set(normalizedGradientKey, { original: gradient, count: 1 });
+    }
+  }
+  
+  // Get all elements
+  const elements = document.getElementsByTagName('*');
+  
+  Array.from(elements).forEach(element => {
+    const styles = window.getComputedStyle(element);
+    const backgroundImage = styles.backgroundImage;
+    
+    if (backgroundImage && backgroundImage.includes('gradient')) {
+      addGradient(backgroundImage);
+    }
+  });
+  
+  // Also check all stylesheets
+  try {
+    Array.from(document.styleSheets).forEach(sheet => {
+      try {
+        Array.from(sheet.cssRules || sheet.rules).forEach(rule => {
+          if (rule.style && rule.style.backgroundImage && rule.style.backgroundImage.includes('gradient')) {
+            addGradient(rule.style.backgroundImage);
+          }
+        });
+      } catch (e) {
+        // Skip inaccessible stylesheets
+      }
+    });
+  } catch (e) {
+    console.warn('Could not access some stylesheets:', e);
+  }
+  
+  // Return the map entries directly. The format is now [normalizedKey, { original, count }]
+  return Array.from(gradientMap.entries());
+}
+
+// Function to normalize gradient string (used for grouping/key generation)
+function normalizeGradient(gradient) {
+  // Remove vendor prefixes
+  gradient = gradient.replace(/-webkit-|-moz-|-o-|-ms-/g, '');
+  
+  // Extract colors and positions
+  const colors = gradient.match(/rgba?\([^)]+\)|#[0-9a-f]{3,8}/gi) || [];
+  const positions = gradient.match(/\d+%|\d+\.\d+%/g) || [];
+  
+  // Create a normalized string
+  return colors.map((color, i) => {
+    const position = positions[i] || '';
+    return `${color}${position}`;
+  }).join(',');
+}
+
 // Listen for messages from the popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Content script received message:', request);
@@ -212,6 +279,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const counts = countComponents();
     console.log('Sending component counts:', counts);
     sendResponse(counts);
+  } else if (request.action === 'getGradients') {
+    const gradients = extractGradients();
+    sendResponse({ gradients });
   }
   return true; // Keep the message channel open for async response
 });
