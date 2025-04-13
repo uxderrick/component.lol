@@ -141,17 +141,77 @@ function extractColors() {
   return Array.from(colorMap.entries());
 }
 
+// Function to count components on the page
+function countComponents() {
+  // Count colors
+  const colorMap = new Map();
+  function addColor(color) {
+    if (!color || color === 'transparent' || color === 'rgba(0, 0, 0, 0)') return;
+    const normalizedColor = normalizeColor(color);
+    colorMap.set(normalizedColor, (colorMap.get(normalizedColor) || 0) + 1);
+  }
+
+  // Get all elements
+  const elements = document.getElementsByTagName('*');
+  Array.from(elements).forEach(element => {
+    const styles = window.getComputedStyle(element);
+    addColor(styles.color);
+    addColor(styles.backgroundColor);
+    addColor(styles.borderColor);
+  });
+
+  // Count typography elements (excluding those within buttons and other interactive elements)
+  const typographyElements = document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, a, li, blockquote');
+  const typographyCount = Array.from(typographyElements).filter(el => {
+    // Exclude elements that are part of buttons or other interactive elements
+    return !el.closest('button, [role="button"], input, select, textarea, .button, .btn');
+  }).length;
+
+  // Count buttons (including various button types and button-like elements)
+  const buttons = document.querySelectorAll('button, [role="button"], input[type="button"], input[type="submit"], .button, .btn');
+  const buttonCount = Array.from(buttons).filter(button => {
+    // Exclude hidden buttons
+    const style = window.getComputedStyle(button);
+    return style.display !== 'none' && style.visibility !== 'hidden';
+  }).length;
+
+  // Count assets (images, icons, SVGs)
+  const assets = document.querySelectorAll('img, svg, [class*="icon"], [class*="logo"]');
+  const assetCount = Array.from(assets).filter(asset => {
+    // Exclude hidden assets
+    const style = window.getComputedStyle(asset);
+    return style.display !== 'none' && style.visibility !== 'hidden';
+  }).length;
+
+  return {
+    colors: colorMap.size,
+    typography: typographyCount,
+    buttons: buttonCount,
+    assets: assetCount
+  };
+}
+
 // Listen for messages from the popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log('Content script received message:', request);
+  
   if (request.action === 'getColors') {
-    sendResponse({ colors: extractColors() });
+    const colors = extractColors();
+    console.log('Sending colors:', colors);
+    sendResponse({ colors });
   } else if (request.action === 'getMetaData') {
-    sendResponse({
+    const metaData = {
       title: document.title,
       description: document.querySelector('meta[name="description"]')?.content || 
                   document.querySelector('meta[property="og:description"]')?.content ||
                   'No description available'
-    });
+    };
+    console.log('Sending meta data:', metaData);
+    sendResponse(metaData);
+  } else if (request.action === 'getComponentCounts') {
+    const counts = countComponents();
+    console.log('Sending component counts:', counts);
+    sendResponse(counts);
   }
-  return true;
+  return true; // Keep the message channel open for async response
 });

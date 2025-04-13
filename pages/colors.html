@@ -12,38 +12,49 @@
     /* Colors page specific styles */
     .tabs {
       display: flex;
-      gap: var(--spacing-sm);
+      gap: var(--spacing-xs);
       margin-bottom: var(--spacing-lg);
       border-bottom: 1px solid var(--color-border);
-      padding-bottom: var(--spacing-sm);
+      padding-bottom: var(--spacing-xs);
     }
 
     .tab-button {
-      padding: var(--spacing-sm) var(--spacing-lg);
+      padding: var(--spacing-xs) var(--spacing-sm);
       background: none;
       border: none;
       color: var(--color-text-secondary);
-      font-size: 14px;
+      font-size: 12px;
       font-weight: 500;
       cursor: pointer;
       border-radius: var(--radius-sm);
       transition: all 0.2s;
+      position: relative;
     }
 
     .tab-button:hover {
       color: var(--color-text-primary);
-      background: var(--color-hover);
     }
 
     .tab-button.active {
       color: var(--color-text-primary);
-      background: var(--color-hover);
+      font-weight: 600;
+    }
+
+    .tab-button.active::after {
+      content: '';
+      position: absolute;
+      bottom: calc(-1 * var(--spacing-xs) - 1px);
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--color-text-primary);
+      border-radius: 2px;
     }
 
     .colors-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: var(--spacing-lg);
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: var(--spacing-md);
       margin-bottom: var(--spacing-xl);
     }
     
@@ -54,38 +65,58 @@
       box-shadow: var(--shadow-sm);
       transition: all 0.2s;
       cursor: pointer;
+      position: relative;
     }
     
     .color-card:hover {
       box-shadow: var(--shadow-md);
-      transform: translateY(-1px);
+      transform: translateY(-2px);
     }
     
     .color-swatch {
-      height: 100px;
+      height: 60px;
       width: 100%;
-      border-bottom: 1px solid var(--color-border);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .color-swatch::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%),
+                  linear-gradient(-45deg, rgba(255,255,255,0.1) 25%, transparent 25%);
+      background-size: 10px 10px;
     }
     
     .color-info {
       padding: var(--spacing-md);
+      background: var(--color-surface);
     }
     
     .color-name {
-      font-size: 14px;
+      font-size: 11px;
       font-weight: 500;
       margin-bottom: var(--spacing-xs);
+      color: var(--color-text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     
     .color-hex {
       font-family: var(--font-mono);
-      font-size: 12px;
-      color: var(--color-text-secondary);
+      font-size: 11px;
+      color: var(--color-text-primary);
+      font-weight: 600;
       margin-bottom: var(--spacing-xs);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     
     .color-count {
-      font-size: 12px;
+      font-size: 10px;
       color: var(--color-text-tertiary);
     }
 
@@ -103,6 +134,171 @@
     .empty-state-subtitle {
       font-size: 14px;
       color: var(--color-text-tertiary);
+    }
+
+    /* Color selectors */
+    .color-selectors {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-lg);
+      padding: var(--spacing-xs);
+    }
+
+    .selector-group {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+      flex: 1;
+      min-width: 120px;
+      background: var(--color-surface);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border);
+      padding: var(--spacing-xs);
+    }
+
+    .selector-group label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      white-space: nowrap;
+    }
+
+    .selector {
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border: none;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--color-text-primary);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 4L5 7L8 4' fill='%236B7280'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right var(--spacing-xs) center;
+      padding-right: var(--spacing-lg);
+      min-width: 80px;
+      max-width: 100%;
+    }
+
+    .selector:hover {
+      background-color: var(--color-hover);
+    }
+
+    .selector:focus {
+      outline: none;
+      background-color: var(--color-hover);
+    }
+
+    .selector:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background-color: var(--color-hover);
+    }
+
+    .selector:disabled:hover {
+      background-color: var(--color-hover);
+    }
+
+    /* Color family sections */
+    .color-family {
+      margin-bottom: var(--spacing-lg);
+      width: 100%;
+    }
+
+    .family-header {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      margin-bottom: var(--spacing-sm);
+      text-transform: capitalize;
+      padding: 0 var(--spacing-md);
+    }
+
+    .color-family .colors-grid {
+      margin-bottom: 0;
+      display: grid;
+      grid-template-columns: repeat(100px, minmax(100px, 1fr));
+      gap: var(--spacing-md);
+    }
+
+    #colors-grid {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-xl);
+    }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: var(--spacing-lg);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--color-surface);
+      padding: var(--spacing-md) var(--spacing-lg);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-md);
+      font-size: 14px;
+      color: var(--color-text-primary);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
+
+    /* Skeleton loading styles */
+    .skeleton {
+      background: linear-gradient(90deg, var(--color-hover) 25%, var(--color-surface) 37%, var(--color-hover) 63%);
+      background-size: 400% 100%;
+      animation: skeleton-loading 1.4s ease infinite;
+    }
+
+    @keyframes skeleton-loading {
+      0% {
+        background-position: 0% 50%;
+      }
+      100% {
+        background-position: 100% 50%;
+      }
+    }
+
+    .skeleton-color-card {
+      height: 100px;
+      border-radius: var(--radius-md);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .skeleton-color-swatch {
+      height: 60px;
+      width: 100%;
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+    }
+
+    .skeleton-color-info {
+      padding: var(--spacing-md);
+    }
+
+    .skeleton-color-name {
+      height: 12px;
+      width: 60%;
+      margin-bottom: var(--spacing-xs);
+      border-radius: var(--radius-sm);
+    }
+
+    .skeleton-color-hex {
+      height: 12px;
+      width: 40%;
+      border-radius: var(--radius-sm);
+    }
+
+    .skeleton-family-header {
+      height: 16px;
+      width: 30%;
+      margin-bottom: var(--spacing-md);
+      border-radius: var(--radius-sm);
     }
   </style>
 </head>
@@ -122,8 +318,43 @@
   </div>
 
   <div class="tabs">
-    <button class="tab-button active" data-tab="hex">Hex Colors</button>
-    <button class="tab-button" data-tab="rgb">RGB Colors</button>
+    <button class="tab-button active" data-tab="colors">Colors</button>
+    <button class="tab-button" data-tab="gradient">Gradient</button>
+    <button class="tab-button" data-tab="export">Export</button>
+  </div>
+
+  <div class="color-selectors">
+    <div class="selector-group">
+      <label for="color-format">Color Format:</label>
+      <select id="color-format" class="selector">
+        <option value="rgb">RGB</option>
+        <option value="hex">HEX</option>
+      </select>
+    </div>
+    <div class="selector-group">
+      <label for="color-theme">Theme:</label>
+      <select id="color-theme" class="selector">
+        <option value="all">All</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </div>
+    <div class="selector-group">
+      <label for="color-family">Family:</label>
+      <select id="color-family" class="selector">
+        <option value="all">All Families</option>
+        <option value="Reds">Reds</option>
+        <option value="Oranges">Oranges</option>
+        <option value="Yellows">Yellows</option>
+        <option value="Greens">Greens</option>
+        <option value="Teals">Teals</option>
+        <option value="Blues">Blues</option>
+        <option value="Purples">Purples</option>
+        <option value="Pinks">Pinks</option>
+        <option value="Grayscale">Grayscale</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
   </div>
 
   <div id="colors-grid" class="colors-grid">
