@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Color Palette - Component.lol</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../shared.css">
+  <style>
+    /* Colors page specific styles */
+    .tabs {
+      display: flex;
+      gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-lg);
+      border-bottom: 1px solid var(--color-border);
+      padding-bottom: var(--spacing-sm);
+    }
+
+    .tab-button {
+      padding: var(--spacing-sm) var(--spacing-lg);
+      background: none;
+      border: none;
+      color: var(--color-text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: all 0.2s;
+    }
+
+    .tab-button:hover {
+      color: var(--color-text-primary);
+      background: var(--color-hover);
+    }
+
+    .tab-button.active {
+      color: var(--color-text-primary);
+      background: var(--color-hover);
+    }
+
+    .colors-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--spacing-lg);
+      margin-bottom: var(--spacing-xl);
+    }
+    
+    .color-card {
+      background: var(--color-surface);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    
+    .color-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+    }
+    
+    .color-swatch {
+      height: 100px;
+      width: 100%;
+      border-bottom: 1px solid var(--color-border);
+    }
+    
+    .color-info {
+      padding: var(--spacing-md);
+    }
+    
+    .color-name {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: var(--spacing-xs);
+    }
+    
+    .color-hex {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      margin-bottom: var(--spacing-xs);
+    }
+    
+    .color-count {
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+    }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: var(--spacing-xl);
+      color: var(--color-text-secondary);
+    }
+
+    .empty-state p {
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .empty-state-subtitle {
+      font-size: 14px;
+      color: var(--color-text-tertiary);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <a href="../index.html" class="back-button">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Back
+    </a>
+  </div>
+
+  <div class="title-section">
+    <h1>Color Palette</h1>
+    <p class="subtitle">Find all the colors used within this website below</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-button active" data-tab="hex">Hex Colors</button>
+    <button class="tab-button" data-tab="rgb">RGB Colors</button>
+  </div>
+
+  <div id="colors-grid" class="colors-grid">
+    <!-- Colors will be inserted here by JavaScript -->
+  </div>
+
+  <div id="copied-toast" class="toast">
+    Color copied to clipboard!
+  </div>
+
+  <script type="module" src="colors.js"></script>
+</body>
+</html> 

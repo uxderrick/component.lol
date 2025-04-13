@@ -9,23 +9,57 @@
 -->
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Hello World Extension</title>
-  <style>
-    body {
-      width: 200px;
-      padding: 10px;
-      font-family: Arial, sans-serif;
-    }
-    h1 {
-      font-size: 18px;
-      color: #333;
-      text-align: center;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Component.lol</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="index.css">
 </head>
 <body>
-  <h1>Hello World!</h1>
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon"></div>
+      <div class="logo-text">Component.lol</div>
+    </div>
+    <div class="header-actions">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 22C13.1 22 14 21.1 14 20H10C10 21.1 10.9 22 12 22ZM18 16V11C18 7.93 16.37 5.36 13.5 4.68V4C13.5 3.17 12.83 2.5 12 2.5C11.17 2.5 10.5 3.17 10.5 4V4.68C7.64 5.36 6 7.92 6 11V16L4 18V19H20V18L18 16Z" fill="currentColor"/>
+      </svg>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z" fill="currentColor"/>
+      </svg>
+    </div>
+  </header>
+
+  <div class="badge">Components from this website</div>
+
+  <section class="profile-section">
+    <h1 class="profile-title" id="website-title">Loading...</h1>
+    <p class="profile-description" id="website-description">
+      Loading website description...
+    </p>
+  </section>
+
+  <div class="components-grid">
+    <div class="component-card colors-card" id="colors-card">
+      <span>Colors</span>
+    </div>
+    <div class="component-card typography-card">
+      <span>Typography</span>
+    </div>
+    <div class="component-card buttons-card">
+      <span>Buttons</span>
+    </div>
+    <div class="component-card assets-card">
+      <span>Assets</span>
+    </div>
+  </div>
+
+  <script src="scripts.js"></script>
 </body>
 </html>

@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "Hello World Extension",
+  "name": "Component.lol",
   "version": "1.0",
-  "author": "First Last",
-  "description": "A simple Hello World Chrome extension",
+  "author": "Derrick Tsorme",
+  "description": "Explore design components and assets from websites",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "tabs"
   ],
   "content_scripts": [
     {
@@ -15,7 +16,8 @@
       ],
       "js": [
         "content.js"
-      ]
+      ],
+      "run_at": "document_end"
     }
   ],
   "background": {

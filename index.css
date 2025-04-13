@@ -1,0 +1,129 @@
+/* Header specific styles */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--color-background);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  background: var(--color-text-primary);
+  border-radius: var(--radius-sm);
+}
+
+.logo-text {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.header-actions svg {
+  cursor: pointer;
+  color: var(--color-text-primary);
+  transition: color 0.2s;
+}
+
+.header-actions svg:hover {
+  color: var(--color-text-secondary);
+}
+
+/* Badge styles */
+.badge {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Profile section */
+.profile-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.profile-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: var(--spacing-xs);
+  color: var(--color-text-primary);
+}
+
+.profile-description {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+/* Components grid */
+.components-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-lg);
+}
+
+.component-card {
+  height: 120px;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s;
+  border: 1px solid var(--color-border);
+}
+
+.component-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.component-card span {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--color-text-primary);
+}
+
+/* Card variants */
+.colors-card {
+  background: linear-gradient(135deg, #FF6B6B, #4ECDC4);
+}
+
+.colors-card span {
+  color: white;
+}
+
+.typography-card {
+  background: linear-gradient(135deg, #A8E6CF, #DCEDC1);
+}
+
+.buttons-card {
+  background: linear-gradient(135deg, #FFD93D, #FF6B6B);
+}
+
+.assets-card {
+  background: linear-gradient(135deg, #6C5CE7, #A8E6CF);
+}
+
+.assets-card span {
+  color: white;
+} 
