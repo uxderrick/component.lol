@@ -191,19 +191,9 @@ function groupColorsByFormat(colors) {
 
 // Function to convert hex to RGB
 function hexToRgb(hex) {
-  // Remove the hash if it exists
-  hex = hex.replace('#', '');
-  
-  // Validate hex format
-  if (!/^[0-9A-Fa-f]{6}$/.test(hex)) {
-    throw new Error('Invalid hex color format');
-  }
-  
-  // Parse the hex values
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
-  const b = parseInt(hex.substring(4, 6), 16);
-  
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
   return `rgb(${r}, ${g}, ${b})`;
 }
 
@@ -423,6 +413,92 @@ function getGradientType(gradient) {
   return 'Gradient';
 }
 
+// Function to generate CSS variables from colors
+function generateCSSVariables(colors, format = 'hex') {
+  let css = ':root {\n';
+  
+  // Add color variables
+  colors.forEach(([color, count]) => {
+    const colorName = getColorName(color).toLowerCase().replace(/\s+/g, '-');
+    const shortHex = color.replace('#', '').slice(-3);
+    const colorValue = format === 'hex' ? color : hexToRgb(color);
+    css += `  --color-${colorName}-${shortHex}: ${colorValue};\n`;
+  });
+  
+  css += '}\n';
+  return css;
+}
+
+// Function to download text as file
+function downloadTextAsFile(text, filename) {
+  const blob = new Blob([text], { type: 'text/css' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
+
+// Function to display export view
+function displayExport() {
+  const grid = document.getElementById('colors-grid');
+  
+  // Get all colors (both hex and rgb)
+  const allColors = new Map([
+    ...Array.from(currentHexColors.entries()),
+    ...Array.from(currentRgbColors.entries())
+  ]);
+  
+  // Sort colors by usage count
+  const sortedColors = Array.from(allColors.entries())
+    .sort((a, b) => b[1] - a[1]);
+  
+  // Generate CSS variables with HEX format
+  let cssVariables = generateCSSVariables(sortedColors, 'hex');
+  
+  // Create export view HTML
+  grid.innerHTML = `
+    <div class="export-section">
+      <h2 class="export-title">Download CSS</h2>
+      <p class="export-description">Download the CSS variables as a file</p>
+      <button class="export-button" id="download-css">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M14 6h-4V2c0-1.1-.9-2-2-2H2C.9 0 0 .9 0 2v8c0 1.1.9 2 2 2h4v2c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6 6H2V2h6v10zm6 2H8V8h6v6z" fill="currentColor"/>
+        </svg>
+        Download CSS File
+      </button>
+    </div>
+    <div class="export-section">
+      <h2 class="export-title">CSS Variables</h2>
+      <p class="export-description">Copy and paste these CSS variables into your stylesheet</p>
+      <div class="code-preview">
+        <pre><code>${cssVariables}</code></pre>
+      </div>
+      <button class="export-button" id="copy-css">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M2 2h8v2h2V2c0-1.1-.9-2-2-2H2C.9 0 0 .9 0 2v8c0 1.1.9 2 2 2h2v-2H2V2z" fill="currentColor"/>
+          <path d="M6 6v8c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2zm2 0h8v8H8V6z" fill="currentColor"/>
+        </svg>
+        Copy to Clipboard
+      </button>
+    </div>
+  `;
+  
+  // Add event listeners
+  document.getElementById('copy-css').addEventListener('click', () => {
+    navigator.clipboard.writeText(cssVariables);
+    showToast('CSS variables copied to clipboard!');
+  });
+  
+  document.getElementById('download-css').addEventListener('click', () => {
+    downloadTextAsFile(cssVariables, 'colors.css');
+    showToast('CSS file downloaded!');
+  });
+}
+
 // Function to handle tab switching
 function setupTabs() {
   const tabs = document.querySelectorAll('.tab-button');
@@ -521,7 +597,7 @@ function setupTabs() {
         displayGradients();
       } else if (tabType === 'export') {
         selectors.style.display = 'none';
-        grid.innerHTML = '<div class="empty-state"><p>Export view coming soon!</p></div>';
+        displayExport();
       }
     });
   });

@@ -98,7 +98,7 @@
 
 .component-card {
   position: relative;
-  background: #2C2C2E;
+  /* background: #2C2C2E; Base background might be overridden by variants */
   color: white;
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -107,6 +107,7 @@
   border: 1px solid var(--color-border);
   padding: 12px;
   height: 150px;
+  text-align: left;
 }
 
 .component-card:hover {
@@ -151,6 +152,44 @@
   font-size: 14px;
   color: currentColor;
   text-align: left;
+}
+
+/* Re-introduce Card variants with patterns */
+
+.colors-card {
+  background: #000 repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.1) 1px,
+    transparent 1px,
+    transparent 10px
+  );
+}
+
+.typography-card {
+  background-color: #000;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px);
+  background-size: 10px 10px;
+}
+
+.buttons-card {
+   background: #000 repeating-radial-gradient(
+     circle,
+     rgba(255, 255, 255, 0.1),
+     rgba(255, 255, 255, 0.1) 1px,
+     transparent 1px,
+     transparent 10px
+   );
+}
+
+.assets-card {
+  background: #000 repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.1) 1px,
+    transparent 1px,
+    transparent 10px
+  );
 }
 
 /* Card variants */
