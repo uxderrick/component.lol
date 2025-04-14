@@ -258,6 +258,103 @@ function normalizeGradient(gradient) {
   }).join(',');
 }
 
+// Function to analyze typography on the page
+function analyzeTypography() {
+  const typographyMap = new Map();
+  const processedStyles = new Set();
+  
+  // Helper function to get computed styles
+  function getTypographyStyles(element) {
+    const styles = window.getComputedStyle(element);
+    return {
+      fontFamily: styles.fontFamily,
+      fontSize: styles.fontSize,
+      fontWeight: styles.fontWeight,
+      lineHeight: styles.lineHeight
+    };
+  }
+  
+  // Helper function to create a unique key for typography styles
+  function createTypographyKey(styles) {
+    return `${styles.fontFamily}-${styles.fontSize}-${styles.fontWeight}-${styles.lineHeight}`;
+  }
+  
+  // First, scan all stylesheets
+  try {
+    Array.from(document.styleSheets).forEach(sheet => {
+      try {
+        Array.from(sheet.cssRules || sheet.rules).forEach(rule => {
+          // Handle regular style rules
+          if (rule.style) {
+            // Only process rules that target typography-related elements
+            if (rule.selectorText) {
+              // Extract element type from selector
+              const match = rule.selectorText.match(/^(h[1-6]|p|a|span|div|li|blockquote)/);
+              if (match) {
+                const elementType = match[1];
+                const styles = {
+                  fontFamily: rule.style.fontFamily || 'inherit',
+                  fontSize: rule.style.fontSize || 'inherit',
+                  fontWeight: rule.style.fontWeight || 'inherit',
+                  lineHeight: rule.style.lineHeight || 'inherit'
+                };
+                
+                // Only add if we have at least one non-inherited style
+                if (Object.values(styles).some(value => value !== 'inherit')) {
+                  const key = createTypographyKey(styles);
+                  if (!processedStyles.has(key)) {
+                    processedStyles.add(key);
+                    typographyMap.set(key, {
+                      element: { type: elementType, tagName: elementType.toUpperCase() },
+                      styles,
+                      count: 1
+                    });
+                  }
+                }
+              }
+            }
+          }
+        });
+      } catch (e) {
+        // Skip inaccessible stylesheets (e.g., cross-origin)
+        console.warn('Could not access stylesheet:', e);
+      }
+    });
+  } catch (e) {
+    console.warn('Could not process some stylesheets:', e);
+  }
+  
+  // Then, scan actual elements
+  const elements = document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, a, li, blockquote');
+  
+  elements.forEach(element => {
+    // Skip hidden elements
+    const style = window.getComputedStyle(element);
+    if (style.display === 'none' || style.visibility === 'hidden') return;
+    
+    // Skip elements that are part of buttons or other interactive elements
+    if (element.closest('button, [role="button"], input, select, textarea, .button, .btn')) return;
+    
+    const styles = getTypographyStyles(element);
+    const key = createTypographyKey(styles);
+    
+    if (typographyMap.has(key)) {
+      typographyMap.get(key).count++;
+    } else {
+      typographyMap.set(key, {
+        element: {
+          type: element.tagName.toLowerCase(),
+          tagName: element.tagName
+        },
+        styles,
+        count: 1
+      });
+    }
+  });
+  
+  return Object.fromEntries(typographyMap);
+}
+
 // Listen for messages from the popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Content script received message:', request);
@@ -282,6 +379,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.action === 'getGradients') {
     const gradients = extractGradients();
     sendResponse({ gradients });
+  } else if (request.action === 'getTypography') {
+    // Get typography data
+    const typography = analyzeTypography();
+    sendResponse({ typography });
   }
   return true; // Keep the message channel open for async response
 });

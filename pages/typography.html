@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Typography - Component.lol</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../shared.css">
+  <link rel="stylesheet" href="typography.css">
+  <link rel="stylesheet" href="colors.css"
+</head>
+<body>
+  <div class="header">
+    <a href="../index.html" class="back-button">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Back
+    </a>
+  </div>
+
+  <div class="title-section">
+    <h1>Typography</h1>
+    <p class="subtitle">Explore the typography system used</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-button active" data-tab="fonts">Fonts</button>
+    <button class="tab-button" data-tab="export">Export</button>
+  </div>
+
+  <div class="color-selectors">
+    <div class="selector-group">
+      <label for="font-format">Font Format:</label>
+      <select id="font-format" class="selector">
+        <option value="css">CSS</option>
+        <option value="tailwind">Tailwind</option>
+      </select>
+    </div>
+    <div class="selector-group">
+      <label for="font-weight">Weight:</label>
+      <select id="font-weight" class="selector">
+        <option value="all">All Weights</option>
+        <option value="regular">Regular (400)</option>
+        <option value="medium">Medium (500)</option>
+        <option value="semibold">Semibold (600)</option>
+        <option value="bold">Bold (700)</option>
+      </select>
+    </div>
+    <div class="selector-group">
+      <label for="font-category">Category:</label>
+      <select id="font-category" class="selector">
+        <option value="all">All Categories</option>
+        <option value="display">Display</option>
+        <option value="heading">Heading</option>
+        <option value="body">Body</option>
+        <option value="code">Code</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="typography-grid" class="colors-grid">
+    <div class="font-card">
+      <div class="font-preview">
+        <p class="font-preview-text" style="font-family: 'Inter'">Aa</p>
+      </div>
+      <div class="font-info">
+        <div class="font-name">Inter</div>
+        <div class="font-details">Regular 400</div>
+        <div class="font-meta">
+          <span class="font-weight">12 weights</span>
+          <span class="font-style">4 styles</span>
+        </div>
+      </div>
+    </div>
+    <div class="font-card">
+      <div class="font-preview">
+        <p class="font-preview-text" style="font-family: 'Inter'">Aa</p>
+      </div>
+      <div class="font-info">
+        <div class="font-name">Inter</div>
+        <div class="font-details">Regular 400</div>
+        <div class="font-meta">
+          <span class="font-weight">12 weights</span>
+          <span class="font-style">4 styles</span>
+        </div>
+      </div>
+    </div> <div class="font-card">
+      <div class="font-preview">
+        <p class="font-preview-text" style="font-family: 'Inter'">Aa</p>
+      </div>
+      <div class="font-info">
+        <div class="font-name">Inter</div>
+        <div class="font-details">Regular 400</div>
+        <div class="font-meta">
+          <span class="font-weight">12 weights</span>
+          <span class="font-style">4 styles</span>
+        </div>
+      </div>
+    </div> <div class="font-card">
+      <div class="font-preview">
+        <p class="font-preview-text" style="font-family: 'Inter'">Aa</p>
+      </div>
+      <div class="font-info">
+        <div class="font-name">Inter</div>
+        <div class="font-details">Regular 900</div>
+        <div class="font-meta">
+          <span class="font-weight">12 weights</span>
+          <span class="font-style">4 styles</span>
+        </div>
+      </div>
+    </div>
+    <!-- Typography examples will be inserted here by JavaScript -->
+  </div>
+
+  <div id="copied-toast" class="toast">
+    Typography styles copied to clipboard!
+  </div>
+
+  <script type="module" src="typography.js"></script>
+</body>
+</html> 

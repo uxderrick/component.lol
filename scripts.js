@@ -48,6 +48,14 @@ document.addEventListener('DOMContentLoaded', () => {
       window.location.href = 'pages/colors.html';
     });
   }
+
+  // Add click handler for typography card
+  const typographyCard = document.querySelector('.typography-card');
+  if (typographyCard) {
+    typographyCard.addEventListener('click', () => {
+      window.location.href = 'pages/typography.html';
+    });
+  }
 });
 
 // Listen for tab updates to refresh counters
