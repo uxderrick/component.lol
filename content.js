@@ -258,99 +258,187 @@ function normalizeGradient(gradient) {
   }).join(',');
 }
 
+// Function to resolve CSS variable to its actual value
+function resolveCSSVariable(value) {
+  if (!value || !value.startsWith('var(--')) return value;
+  
+  // Create a temporary element to compute the style
+  const temp = document.createElement('div');
+  temp.style.cssText = `font-size: ${value}; line-height: ${value};`;
+  document.body.appendChild(temp);
+  
+  // Get the computed value
+  const computedStyle = window.getComputedStyle(temp);
+  const resolvedValue = computedStyle.fontSize !== value ? computedStyle.fontSize : computedStyle.lineHeight;
+  
+  // Clean up
+  document.body.removeChild(temp);
+  
+  return resolvedValue;
+}
+
 // Function to analyze typography on the page
 function analyzeTypography() {
   const typographyMap = new Map();
   const processedStyles = new Set();
   
-  // Helper function to get computed styles
-  function getTypographyStyles(element) {
-    const styles = window.getComputedStyle(element);
-    return {
-      fontFamily: styles.fontFamily,
-      fontSize: styles.fontSize,
-      fontWeight: styles.fontWeight,
-      lineHeight: styles.lineHeight
-    };
+  // Helper function to normalize font family
+  function normalizeFontFamily(fontFamily) {
+    if (!fontFamily) return '';
+    return fontFamily.split(',').map(font => 
+      font.trim().replace(/['"]/g, '').toLowerCase()
+    )[0];
   }
   
   // Helper function to create a unique key for typography styles
   function createTypographyKey(styles) {
-    return `${styles.fontFamily}-${styles.fontSize}-${styles.fontWeight}-${styles.lineHeight}`;
+    return `${styles.fontFamily}-${styles.fontSize}-${styles.fontWeight}-${styles.fontStyle}`;
   }
-  
-  // First, scan all stylesheets
-  try {
-    Array.from(document.styleSheets).forEach(sheet => {
-      try {
-        Array.from(sheet.cssRules || sheet.rules).forEach(rule => {
-          // Handle regular style rules
-          if (rule.style) {
-            // Only process rules that target typography-related elements
-            if (rule.selectorText) {
-              // Extract element type from selector
-              const match = rule.selectorText.match(/^(h[1-6]|p|a|span|div|li|blockquote)/);
-              if (match) {
-                const elementType = match[1];
-                const styles = {
-                  fontFamily: rule.style.fontFamily || 'inherit',
-                  fontSize: rule.style.fontSize || 'inherit',
-                  fontWeight: rule.style.fontWeight || 'inherit',
-                  lineHeight: rule.style.lineHeight || 'inherit'
-                };
-                
-                // Only add if we have at least one non-inherited style
-                if (Object.values(styles).some(value => value !== 'inherit')) {
-                  const key = createTypographyKey(styles);
-                  if (!processedStyles.has(key)) {
-                    processedStyles.add(key);
-                    typographyMap.set(key, {
-                      element: { type: elementType, tagName: elementType.toUpperCase() },
-                      styles,
-                      count: 1
-                    });
-                  }
-                }
-              }
-            }
-          }
-        });
-      } catch (e) {
-        // Skip inaccessible stylesheets (e.g., cross-origin)
-        console.warn('Could not access stylesheet:', e);
-      }
+
+  // Helper function to check if a font is a system font
+  function isSystemFont(fontFamily) {
+    const systemFonts = [
+      'system-ui', '-apple-system', 'segoe ui', 'roboto', 'helvetica neue',
+      'arial', 'helvetica', 'sans-serif', 'serif', 'monospace', 'cursive',
+      'fantasy', 'times new roman', 'times', 'courier', 'courier new',
+      'georgia', 'palatino', 'garamond', 'bookman', 'trebuchet ms', 'impact',
+      'tahoma', 'verdana'
+    ];
+    return systemFonts.includes(fontFamily.toLowerCase());
+  }
+
+  // Helper function to resolve style value
+  function resolveStyleValue(value, property) {
+    if (!value) return property === 'fontSize' ? '16px' : 
+                 property === 'lineHeight' ? '1.5' : 
+                 property === 'fontWeight' ? '400' : 'normal';
+    
+    // Handle CSS variables
+    if (value.startsWith('var(--')) {
+      return resolveCSSVariable(value);
+    }
+    
+    // Handle relative units for font-size
+    if (property === 'fontSize' && value.includes('rem')) {
+      const rootFontSize = window.getComputedStyle(document.documentElement).fontSize;
+      const remValue = parseFloat(value);
+      return `${remValue * parseFloat(rootFontSize)}px`;
+    }
+    
+    if (property === 'fontSize' && value.includes('em')) {
+      // Default to 16px if we can't determine parent font size
+      const baseFontSize = 16;
+      const emValue = parseFloat(value);
+      return `${emValue * baseFontSize}px`;
+    }
+    
+    return value;
+  }
+
+  // Helper function to process style rule
+  function processStyleRule(rule) {
+    const fontFamily = normalizeFontFamily(rule.style.fontFamily);
+    if (!fontFamily || isSystemFont(fontFamily)) return;
+
+    // Resolve all style values
+    const fontSize = resolveStyleValue(rule.style.fontSize, 'fontSize');
+    const lineHeight = resolveStyleValue(rule.style.lineHeight, 'lineHeight');
+    const fontWeight = resolveStyleValue(rule.style.fontWeight, 'fontWeight');
+    const fontStyle = resolveStyleValue(rule.style.fontStyle, 'fontStyle');
+
+    const key = createTypographyKey({
+      fontFamily,
+      fontSize,
+      fontWeight,
+      fontStyle
     });
-  } catch (e) {
-    console.warn('Could not process some stylesheets:', e);
-  }
-  
-  // Then, scan actual elements
-  const elements = document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, a, li, blockquote');
-  
-  elements.forEach(element => {
-    // Skip hidden elements
-    const style = window.getComputedStyle(element);
-    if (style.display === 'none' || style.visibility === 'hidden') return;
-    
-    // Skip elements that are part of buttons or other interactive elements
-    if (element.closest('button, [role="button"], input, select, textarea, .button, .btn')) return;
-    
-    const styles = getTypographyStyles(element);
-    const key = createTypographyKey(styles);
-    
+
     if (typographyMap.has(key)) {
       typographyMap.get(key).count++;
     } else {
       typographyMap.set(key, {
-        element: {
-          type: element.tagName.toLowerCase(),
-          tagName: element.tagName
+        element: { 
+          type: 'css-rule',
+          tagName: 'CSS',
+          selector: rule.selectorText || ''
         },
-        styles,
+        styles: {
+          fontFamily,
+          fontSize,
+          fontWeight,
+          fontStyle,
+          lineHeight
+        },
         count: 1
       });
     }
-  });
+  }
+
+  // Process stylesheets
+  try {
+    Array.from(document.styleSheets).forEach(sheet => {
+      try {
+        // Skip extension's own stylesheets
+        if (sheet.href && (
+          sheet.href.includes('chrome-extension://') || 
+          sheet.href.includes('moz-extension://')
+        )) {
+          return;
+        }
+
+        Array.from(sheet.cssRules || sheet.rules).forEach(rule => {
+          if (rule instanceof CSSStyleRule && rule.style.fontFamily) {
+            processStyleRule(rule);
+          }
+        });
+      } catch (e) {
+        console.warn('Could not access stylesheet:', e.message);
+      }
+    });
+
+    // Also scan actual elements on the page to catch computed/dynamic styles
+    const elements = document.querySelectorAll('*');
+    elements.forEach(element => {
+      const computedStyle = window.getComputedStyle(element);
+      const fontFamily = normalizeFontFamily(computedStyle.fontFamily);
+      
+      if (!fontFamily || isSystemFont(fontFamily)) return;
+
+      const fontSize = computedStyle.fontSize;
+      const lineHeight = computedStyle.lineHeight;
+      const fontWeight = computedStyle.fontWeight;
+      const fontStyle = computedStyle.fontStyle;
+
+      const key = createTypographyKey({
+        fontFamily,
+        fontSize,
+        fontWeight,
+        fontStyle
+      });
+
+      if (typographyMap.has(key)) {
+        typographyMap.get(key).count++;
+      } else {
+        typographyMap.set(key, {
+          element: {
+            type: element.tagName.toLowerCase(),
+            tagName: element.tagName,
+            selector: ''
+          },
+          styles: {
+            fontFamily,
+            fontSize,
+            fontWeight,
+            fontStyle,
+            lineHeight
+          },
+          count: 1
+        });
+      }
+    });
+  } catch (e) {
+    console.error('Error processing typography:', e);
+  }
   
   return Object.fromEntries(typographyMap);
 }

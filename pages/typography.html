@@ -28,7 +28,50 @@
 
   <div class="tabs">
     <button class="tab-button active" data-tab="fonts">Fonts</button>
-    <button class="tab-button" data-tab="export">Export</button>
+    <button class="tab-button" data-tab="scale">Type Scale</button>
+  </div>
+
+  <div class="scale-controls" style="display: none;">
+    <div class="selector-group">
+      <label for="scale-font-family">Font Family:</label>
+      <select id="scale-font-family" class="selector">
+        <!-- Font families will be populated dynamically -->
+      </select>
+    </div>
+    <div class="selector-group">
+      <label for="scale-base-size">Base Size:</label>
+      <select id="scale-base-size" class="selector">
+        <option value="10">10px</option>
+        <option value="12">12px</option>
+        <option value="14">14px</option>
+        <option value="16" selected>16px</option>
+        <option value="18">18px</option>
+      </select>
+    </div>
+    <div class="selector-group">
+      <label for="scale-ratio">Scale Ratio:</label>
+      <select id="scale-ratio" class="selector">
+        <option value="1.25">Major Third (1.250)</option>
+        <option value="1.414">Augmented Fourth (1.414)</option>
+        <option value="1.618">Golden Ratio (1.618)</option>
+      </select>
+    </div>
+    <div class="selector-group">
+      <label for="scale-format">Export Format:</label>
+      <select id="scale-format" class="selector">
+        <option value="css">CSS Variables</option>
+        <option value="scss">SCSS Variables</option>
+        <option value="tailwind">Tailwind Config</option>
+        <option value="styled">Styled Components</option>
+      </select>
+    </div>
+    <div class="selector-group">
+      <label for="scale-unit">Size Unit:</label>
+      <select id="scale-unit" class="selector">
+        <option value="px">Pixels (px)</option>
+        <option value="rem">REM</option>
+      </select>
+    </div>
   </div>
 
   <div class="color-selectors">
@@ -66,70 +109,8 @@
     </div>
   </div>
 
-  <div id="typography-grid" class="colors-grid">
-    <div class="font-card">
-      <div class="font-preview">
-        <p class="font-preview-text" style="font-family: 'Inter'">Aa</p>
-      </div>
-      <div class="font-info">
-        <div class="font-name">Inter</div>
-        <div class="font-details">Regular 400</div>
-        <div class="font-meta">
-          <span class="font-weight">12 weights</span>
-          <span class="font-style">4 styles</span>
-        </div>
-      </div>
-    </div>
-    <div class="font-card">
-      <div class="font-preview">
-        <p class="font-preview-text" style="font-family: 'Inter'">Aa</p>
-      </div>
-      <div class="font-info">
-        <div class="font-name">Inter</div>
-        <div class="font-details">Regular 400</div>
-        <div class="font-meta">
-          <span class="font-weight">12 weights</span>
-          <span class="font-style">4 styles</span>
-        </div>
-      </div>
-    </div> <div class="font-card">
-      <div class="font-preview">
-        <p class="font-preview-text" style="font-family: 'Inter'">Aa</p>
-      </div>
-      <div class="font-info">
-        <div class="font-name">Inter</div>
-        <div class="font-details">Regular 400</div>
-        <div class="font-meta">
-          <span class="font-weight">12 weights</span>
-          <span class="font-style">4 styles</span>
-        </div>
-      </div>
-    </div> <div class="font-card">
-      <div class="font-preview">
-        <p class="font-preview-text" style="font-family: 'Inter'">Aa</p>
-      </div>
-      <div class="font-info">
-        <div class="font-name">Inter</div>
-        <div class="font-details">Regular 400</div>
-        <div class="font-meta">
-          <span class="font-weight">12 weights</span>
-          <span class="font-style">4 styles</span>
-        </div>
-      </div>
-    </div> <div class="font-card">
-      <div class="font-preview">
-        <p class="font-preview-text" style="font-family: 'Inter'">Aa</p>
-      </div>
-      <div class="font-info">
-        <div class="font-name">Inter</div>
-        <div class="font-details">Regular 900</div>
-        <div class="font-meta">
-          <span class="font-weight">12 weights</span>
-          <span class="font-style">4 styles</span>
-        </div>
-      </div>
-    </div>
-    <!-- Typography examples will be inserted here by JavaScript -->
+  <div id="typography-grid" class="typography-grid">
+    <!-- Font cards will be dynamically inserted here -->
   </div>
 
   <div id="copied-toast" class="toast">
