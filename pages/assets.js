@@ -21,7 +21,7 @@ function showToast(message, duration = 2000) {
 function getAssetType(src) {
   const extension = src?.split('.')?.pop()?.toLowerCase();
   if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) return extension;
-  if (['mp4', 'webm'].includes(extension)) return extension;
+  if (['mp4', 'webm', 'mov', 'ogg', 'm4v'].includes(extension)) return extension;
   if (src?.startsWith('data:image/svg+xml')) return 'svg';
   return 'unknown';
 }
@@ -89,16 +89,155 @@ function createAssetCard(asset) {
     `<div class="asset-dimensions">${asset.dimensions.width}×${asset.dimensions.height}</div>` : '';
 
   // Add icon indicator class if it's an icon
-  if (asset.isIcon || asset.type === 'icon') {
+  const isIcon = asset.isIcon || asset.type === 'icon';
+  if (isIcon) {
     card.classList.add('is-icon');
   }
 
-  card.innerHTML = `
-    <div class="asset-preview">
-      ${asset.type === 'svg' 
-        ? asset.content 
-        : `<img src="${asset.url}" alt="${asset.name}" loading="lazy" />`
+  // Handle preview content based on asset type
+  let previewContent = '';
+  if (asset.type === 'svg') {
+    // For SVGs, create a blob URL to avoid CORS issues
+    try {
+      const blob = new Blob([asset.content], { type: 'image/svg+xml' });
+      const blobUrl = URL.createObjectURL(blob);
+      previewContent = `<img src="${blobUrl}" alt="${asset.name}" style="width: 100%; height: 100%; object-fit: contain;" loading="lazy" onload="URL.revokeObjectURL(this.src)" />`;
+    } catch (error) {
+      console.error('Error creating SVG preview:', error);
+      // Fallback to direct content with sanitization
+      const sanitizedContent = asset.content
+        .replace(/script/gi, 'scrpt') // Prevent XSS
+        .replace(/on\w+=/gi, 'data-on='); // Remove event handlers
+      previewContent = `<div class="svg-container" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">${sanitizedContent}</div>`;
+    }
+  } else if (isIcon) {
+    // For icons, create a blob URL and ensure proper sizing
+    try {
+      if (asset.content) {
+        // If we have SVG content for the icon
+        const blob = new Blob([asset.content], { type: 'image/svg+xml' });
+        const blobUrl = URL.createObjectURL(blob);
+        previewContent = `<img src="${blobUrl}" alt="${asset.name}" style="max-width: 32px; max-height: 32px; width: auto; height: auto; object-fit: contain;" loading="lazy" onload="URL.revokeObjectURL(this.src)" />`;
+      } else if (asset.url) {
+        // If we have a URL for the icon, create an object URL from fetching it
+        fetch(asset.url)
+          .then(response => response.blob())
+          .then(blob => {
+            const blobUrl = URL.createObjectURL(blob);
+            const img = card.querySelector('.icon-preview-placeholder');
+            if (img) {
+              img.src = blobUrl;
+              img.onload = () => URL.revokeObjectURL(blobUrl);
+            }
+          })
+          .catch(error => console.error('Error loading icon:', error));
+        
+        // Use a placeholder while loading
+        previewContent = `<img class="icon-preview-placeholder" alt="${asset.name}" style="max-width: 32px; max-height: 32px; width: auto; height: auto; object-fit: contain;" loading="lazy" />`;
       }
+    } catch (error) {
+      console.error('Error creating icon preview:', error);
+      // Fallback to direct URL with proper sizing
+      previewContent = `<img src="${asset.url}" alt="${asset.name}" style="max-width: 32px; max-height: 32px; width: auto; height: auto; object-fit: contain;" loading="lazy" />`;
+    }
+  } else if (['mp4', 'webm', 'mov', 'ogg', 'm4v'].includes(asset.type)) {
+    // For videos, create a video preview with blob URL to handle CORS
+    try {
+      previewContent = `
+        <div class="video-preview" style="width: 100%; height: 100%; max-height: 200px; position: relative;">
+          <video 
+            class="asset-video"
+            style="width: 100%; height: 100%; object-fit: contain;" 
+            controls 
+            preload="metadata"
+            controlsList="nodownload nofullscreen"
+            crossorigin="anonymous"
+            onclick="event.stopPropagation();"
+            playsinline
+          >
+            <source src="${asset.url}" type="video/${asset.type}">
+            <p>Your browser doesn't support this video format.</p>
+          </video>
+          <div class="video-overlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none;"></div>
+        </div>
+      `;
+
+      // After the card is created, fetch and create blob URL for the video
+      setTimeout(async () => {
+        try {
+          const response = await fetch(asset.url, {
+            mode: 'cors',
+            credentials: 'same-origin'
+          });
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          
+          const videoElement = card.querySelector('.asset-video source');
+          if (videoElement) {
+            videoElement.src = blobUrl;
+            const video = videoElement.parentElement;
+            if (video) {
+              video.load(); // Reload the video with the new blob URL
+              
+              // Clean up blob URL when video is removed
+              video.addEventListener('emptied', () => {
+                URL.revokeObjectURL(blobUrl);
+              }, { once: true });
+            }
+          }
+        } catch (error) {
+          console.error('Error creating video blob URL:', error);
+          // If blob creation fails, we'll keep the original URL
+          const videoElement = card.querySelector('.asset-video');
+          if (videoElement) {
+            videoElement.innerHTML = `
+              <p class="video-error" style="padding: 1rem; color: var(--color-text-error);">
+                Unable to load video preview. Click download to access the video.
+              </p>
+            `;
+          }
+        }
+      }, 0);
+    } catch (error) {
+      console.error('Error creating video preview:', error);
+      previewContent = `
+        <div class="video-error" style="padding: 1rem; text-align: center; color: var(--color-text-error);">
+          Unable to preview video
+        </div>
+      `;
+    }
+  } else if (asset.type === 'gif') {
+    // For GIFs, create a special preview that shows animation on hover
+    previewContent = `
+      <div class="gif-preview" style="width: 100%; height: 100%; position: relative; cursor: pointer;">
+        <img 
+          src="${asset.url}" 
+          alt="${asset.name}" 
+          style="width: 100%; height: 100%; object-fit: contain;" 
+          loading="lazy"
+        />
+        <div class="gif-play-indicator" style="
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: rgba(0, 0, 0, 0.6);
+          color: white;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 12px;
+          pointer-events: none;
+        ">GIF</div>
+      </div>
+    `;
+  } else {
+    // Regular images
+    previewContent = `<img src="${asset.url}" alt="${asset.name}" style="width: 100%; height: 100%; object-fit: contain;" loading="lazy" />`;
+  }
+
+  card.innerHTML = `
+    <div class="asset-preview" style="display: flex; align-items: center; justify-content: center; ${isIcon ? 'padding: 1rem; background: var(--color-background-secondary);' : ''}">
+      ${previewContent}
       ${downloadButton}
     </div>
     <div class="asset-info">
@@ -106,7 +245,9 @@ function createAssetCard(asset) {
       <div class="asset-meta">
         ${dimensionsStr}
         <span class="asset-size">${formatFileSize(asset.size)}</span>
-        ${asset.isIcon ? '<span class="icon-badge">Icon</span>' : ''}
+        ${isIcon ? '<span class="icon-badge">Icon</span>' : ''}
+        ${['mp4', 'webm', 'mov', 'ogg', 'm4v'].includes(asset.type) ? '<span class="video-badge">Video</span>' : ''}
+        ${asset.type === 'gif' ? '<span class="gif-badge">GIF</span>' : ''}
       </div>
     </div>
   `;
@@ -117,19 +258,28 @@ function createAssetCard(asset) {
     e.stopPropagation(); // Prevent card click
     try {
       let blob;
-      if (asset.type === 'svg') {
+      if (asset.type === 'svg' || (isIcon && asset.content)) {
+        // For SVGs and SVG icons, use the content directly
         blob = new Blob([asset.content], { type: 'image/svg+xml' });
+      } else if (['mp4', 'webm', 'mov', 'ogg', 'm4v'].includes(asset.type)) {
+        // For videos, fetch with proper CORS headers
+        const response = await fetch(asset.url, {
+          mode: 'cors',
+          credentials: 'same-origin'
+        });
+        blob = await response.blob();
       } else {
+        // For other assets, fetch the URL
         const response = await fetch(asset.url);
         blob = await response.blob();
       }
-      const url = window.URL.createObjectURL(blob);
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = asset.name;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
+      URL.revokeObjectURL(url);
       document.body.removeChild(a);
       showToast('Asset downloaded successfully!');
     } catch (error) {
@@ -145,6 +295,22 @@ function createAssetCard(asset) {
       btnDownload.click();
     }
   });
+
+  // For GIFs, add hover interaction to show animation
+  if (asset.type === 'gif') {
+    const gifPreview = card.querySelector('.gif-preview');
+    const playIndicator = card.querySelector('.gif-play-indicator');
+    
+    if (gifPreview && playIndicator) {
+      gifPreview.addEventListener('mouseenter', () => {
+        playIndicator.style.opacity = '0';
+      });
+      
+      gifPreview.addEventListener('mouseleave', () => {
+        playIndicator.style.opacity = '1';
+      });
+    }
+  }
 
   return card;
 }
