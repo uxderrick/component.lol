@@ -75,6 +75,124 @@ function createAssetCard(asset) {
   card.setAttribute('tabindex', '0');
   card.setAttribute('aria-label', `Asset ${asset.name}`);
 
+  // Add lightbox container to document if it doesn't exist
+  if (!document.getElementById('asset-lightbox')) {
+    const lightboxStyles = `
+      .lightbox {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+      }
+      .lightbox.active {
+        display: flex;
+      }
+      .lightbox-content {
+        position: relative;
+        max-width: 90vw;
+        max-height: 90vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .lightbox-close {
+        position: absolute;
+        top: -40px;
+        right: -40px;
+        width: 30px;
+        height: 30px;
+        background: white;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .lightbox img {
+        max-width: 90vw;
+        max-height: 90vh;
+        object-fit: contain;
+      }
+      .lightbox svg,
+      .lightbox .svg-container {
+        max-width: 90vw;
+        max-height: 90vh;
+        padding: 32px;
+        background: white;
+        border-radius: var(--radius-md);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .lightbox .svg-container svg {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        max-width: 100%;
+        max-height: 100%;
+      }
+      .lightbox .icon-preview {
+        max-width: 128px;
+        max-height: 128px;
+        padding: 24px;
+        background: white;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      }
+      .lightbox .icon-preview img,
+      .lightbox .icon-preview svg {
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        padding: 0;
+        background: none;
+        box-shadow: none;
+      }
+    `;
+    
+    const style = document.createElement('style');
+    style.textContent = lightboxStyles;
+    document.head.appendChild(style);
+
+    const lightbox = document.createElement('div');
+    lightbox.id = 'asset-lightbox';
+    lightbox.className = 'lightbox';
+    lightbox.innerHTML = `
+      <div class="lightbox-content">
+        <button class="lightbox-close" aria-label="Close preview">✕</button>
+        <div class="lightbox-media"></div>
+      </div>
+    `;
+    
+    document.body.appendChild(lightbox);
+
+    // Close lightbox when clicking outside or on close button
+    lightbox.addEventListener('click', (e) => {
+      if (e.target === lightbox || e.target.closest('.lightbox-close')) {
+        lightbox.classList.remove('active');
+      }
+    });
+
+    // Close on escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && lightbox.classList.contains('active')) {
+        lightbox.classList.remove('active');
+      }
+    });
+  }
+
   const downloadButton = `
     <button class="download-button" aria-label="Download asset">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: var(--color-text-secondary); height: 40px; width: 40px;">
@@ -97,18 +215,16 @@ function createAssetCard(asset) {
   // Handle preview content based on asset type
   let previewContent = '';
   if (asset.type === 'svg') {
-    // For SVGs, create a blob URL to avoid CORS issues
     try {
       const blob = new Blob([asset.content], { type: 'image/svg+xml' });
       const blobUrl = URL.createObjectURL(blob);
-      previewContent = `<img src="${blobUrl}" alt="${asset.name}" style="width: 100%; height: 100%; object-fit: contain;" loading="lazy" onload="URL.revokeObjectURL(this.src)" />`;
+      previewContent = `<img src="${blobUrl}" alt="${asset.name}" style="width: 100%; height: 100%; object-fit: contain; cursor: zoom-in;" loading="lazy" onload="URL.revokeObjectURL(this.src)" />`;
     } catch (error) {
       console.error('Error creating SVG preview:', error);
-      // Fallback to direct content with sanitization
       const sanitizedContent = asset.content
-        .replace(/script/gi, 'scrpt') // Prevent XSS
-        .replace(/on\w+=/gi, 'data-on='); // Remove event handlers
-      previewContent = `<div class="svg-container" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">${sanitizedContent}</div>`;
+        .replace(/script/gi, 'scrpt')
+        .replace(/on\w+=/gi, 'data-on=');
+      previewContent = `<div class="svg-container" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; cursor: zoom-in;">${sanitizedContent}</div>`;
     }
   } else if (isIcon) {
     // For icons, create a blob URL and ensure proper sizing
@@ -232,7 +348,7 @@ function createAssetCard(asset) {
     `;
   } else {
     // Regular images
-    previewContent = `<img src="${asset.url}" alt="${asset.name}" style="width: 100%; height: 100%; object-fit: contain;" loading="lazy" />`;
+    previewContent = `<img src="${asset.url}" alt="${asset.name}" style="width: 100%; height: 100%; object-fit: contain; cursor: zoom-in;" loading="lazy" />`;
   }
 
   card.innerHTML = `
@@ -251,6 +367,43 @@ function createAssetCard(asset) {
       </div>
     </div>
   `;
+
+  // Add click handler for preview
+  if (!['mp4', 'webm', 'mov', 'ogg', 'm4v'].includes(asset.type)) {
+    const preview = card.querySelector('.asset-preview');
+    preview.addEventListener('click', (e) => {
+      // Don't open lightbox if clicking download button
+      if (!e.target.closest('.download-button')) {
+        const lightbox = document.getElementById('asset-lightbox');
+        const lightboxMedia = lightbox.querySelector('.lightbox-media');
+        
+        // Clear previous content
+        lightboxMedia.innerHTML = '';
+        
+        if (asset.type === 'svg' && asset.content) {
+          // For SVGs with content, use the content directly and ensure proper sizing
+          const sanitizedContent = asset.content
+            .replace(/script/gi, 'scrpt')
+            .replace(/on\w+=/gi, 'data-on=')
+            // Ensure SVG has width and height attributes if missing
+            .replace(/<svg/, '<svg width="100%" height="100%"');
+          lightboxMedia.innerHTML = `<div class="svg-container">${sanitizedContent}</div>`;
+        } else if (isIcon) {
+          // For icons, create a special preview container
+          lightboxMedia.innerHTML = `
+            <div class="icon-preview">
+              <img src="${asset.url}" alt="${asset.name}" />
+            </div>
+          `;
+        } else {
+          // For regular images
+          lightboxMedia.innerHTML = `<img src="${asset.url}" alt="${asset.name}" />`;
+        }
+        
+        lightbox.classList.add('active');
+      }
+    });
+  }
 
   // Add click handler for the download button
   const btnDownload = card.querySelector('.download-button');
@@ -280,7 +433,6 @@ function createAssetCard(asset) {
       document.body.appendChild(a);
       a.click();
       URL.revokeObjectURL(url);
-      document.body.removeChild(a);
       showToast('Asset downloaded successfully!');
     } catch (error) {
       console.error('Error downloading asset:', error);
@@ -434,4 +586,27 @@ document.addEventListener('DOMContentLoaded', async () => {
       grid.innerHTML = '<div class="error-state">Error loading assets. Please try again.</div>';
     }
   }
-}); 
+});
+
+// Add these styles to the document
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  .animate-fade-out {
+    animation: fadeOut 0.2s ease-out;
+  }
+`;
+document.head.appendChild(style); 
