@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Color Palette - Component.lol</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../shared.css">
+  <link rel="stylesheet" href="colors.css">
+</head>
+<body>
+  <div class="header">
+    <a href="../index.html" class="back-button">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Back
+    </a>
+  </div>
+
+  <div class="title-section">
+    <h1>Color Palette</h1>
+    <p class="subtitle">Find all the colors used within this website below</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-button active" data-tab="colors">Solid</button>
+    <button class="tab-button" data-tab="gradient">Gradient</button>
+    <button class="tab-button" data-tab="export">Export</button>
+  </div>
+
+  <div class="color-selectors">
+    <div class="selector-group">
+      <label for="color-format">Color Format:</label>
+      <select id="color-format" class="selector">
+        <option value="rgb">RGB</option>
+        <option value="hex">HEX</option>
+      </select>
+    </div>
+    <div class="selector-group">
+      <label for="color-theme">Theme:</label>
+      <select id="color-theme" class="selector">
+        <option value="all">All</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </div>
+    <div class="selector-group">
+      <label for="color-family">Family:</label>
+      <select id="color-family" class="selector">
+        <option value="all">All Families</option>
+        <option value="Reds">Reds</option>
+        <option value="Oranges">Oranges</option>
+        <option value="Yellows">Yellows</option>
+        <option value="Greens">Greens</option>
+        <option value="Teals">Teals</option>
+        <option value="Blues">Blues</option>
+        <option value="Purples">Purples</option>
+        <option value="Pinks">Pinks</option>
+        <option value="Grayscale">Grayscale</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="colors-grid" class="colors-grid">
+    <!-- Colors will be inserted here by JavaScript -->
+  </div>
+
+  <div id="copied-toast" class="toast">
+    Color copied to clipboard!
+  </div>
+
+  <script type="module" src="colors.js"></script>
+</body>
+</html> 

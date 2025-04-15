@@ -58,6 +58,22 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+// Add click handler for buttons card
+const buttonsCard = document.querySelector('.buttons-card');
+if (buttonsCard) {
+  buttonsCard.addEventListener('click', () => {
+    window.location.href = 'pages/buttons.html';
+  });
+}
+
+// Add click handler for assets card
+const assetsCard = document.querySelector('.assets-card');
+if (assetsCard) {
+  assetsCard.addEventListener('click', () => {
+    window.location.href = 'pages/assets.html';
+  });
+}
+
 // Listen for tab updates to refresh counters
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete') {

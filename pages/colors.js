@@ -16,7 +16,7 @@ async function getAllColors() {
     return new Promise((resolve) => {
       chrome.tabs.sendMessage(tab.id, { action: 'getColors' }, (response) => {
         if (chrome.runtime.lastError) {
-          console.error('Error communicating with content script:', chrome.runtime.lastError);
+          console.error('Error communicating with content e script:', chrome.runtime.lastError);
           resolve(new Map());
           return;
         }
@@ -118,6 +118,7 @@ function createColorCard(color, count) {
   
   const hex = document.createElement('div');
   hex.className = 'color-hex';
+  // Reverted: Convert RGB to hex if needed
   hex.textContent = color.toUpperCase();
   
   const countEl = document.createElement('div');
@@ -132,6 +133,7 @@ function createColorCard(color, count) {
   
   // Add click handler to copy color
   const handleCopy = () => {
+    // Reverted: Copy the hex value instead of the original color
     copyToClipboard(color);
     card.classList.add('copied');
     setTimeout(() => card.classList.remove('copied'), 200);

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buttons - Component.lol</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../shared.css">
+  <link rel="stylesheet" href="buttons.css">
+</head>
+<body>
+  <div class="header">
+    <a href="../index.html" class="back-button">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Back
+    </a>
+  </div>
+
+  <div class="title-section">
+    <h1>Buttons</h1>
+    <p class="subtitle">All the buttons found on this website</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-button active" data-tab="basic">Basic</button>
+    <button class="tab-button" data-tab="export">Export</button>
+  </div>
+
+  <div class="button-selectors">
+    <div class="selector-group">
+      <label for="button-size">Size:</label>
+      <select id="button-size" class="selector">
+        <option value="all">All Sizes</option>
+        <option value="sm">Small</option>
+        <option value="md">Medium</option>
+        <option value="lg">Large</option>
+        <option value="xl">Extra Large</option>
+      </select>
+    </div>
+    <div class="selector-group">
+      <label for="button-variant">Variant:</label>
+      <select id="button-variant" class="selector">
+        <option value="all">All Variants</option>
+        <option value="solid">Solid</option>
+        <option value="outline">Outline</option>
+        <option value="ghost">Ghost</option>
+        <option value="link">Link</option>
+      </select>
+    </div>
+    <div class="selector-group">
+      <label for="button-type">Type:</label>
+      <select id="button-type" class="selector">
+        <option value="all">All Types</option>
+        <option value="primary">Primary</option>
+        <option value="secondary">Secondary</option>
+        <option value="success">Success</option>
+        <option value="danger">Danger</option>
+        <option value="warning">Warning</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="buttons-grid" class="buttons-grid">
+    <!-- Button cards will be dynamically populated by JavaScript -->
+  </div>
+
+  <div id="copied-toast" class="toast">
+    Button code copied to clipboard!
+  </div>
+
+  <script type="module" src="buttons.js"></script>
+</body>
+</html> 

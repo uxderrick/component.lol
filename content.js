@@ -443,6 +443,132 @@ function analyzeTypography() {
   return Object.fromEntries(typographyMap);
 }
 
+// Function to analyze buttons on the webpage
+function analyzeButtons() {
+  const buttonMap = new Map();
+  
+  // Helper function to get computed dimensions
+  function getDimensions(element) {
+    const computed = window.getComputedStyle(element);
+    const rect = element.getBoundingClientRect();
+    return {
+      width: Math.round(rect.width),
+      height: Math.round(rect.height),
+      padding: {
+        top: computed.paddingTop,
+        right: computed.paddingRight,
+        bottom: computed.paddingBottom,
+        left: computed.paddingLeft
+      }
+    };
+  }
+
+  // Helper function to get colors
+  function getColors(element) {
+    const computed = window.getComputedStyle(element);
+    return {
+      background: computed.backgroundColor,
+      text: computed.color,
+      border: computed.borderColor,
+      hoverBg: getHoverColor(element, 'backgroundColor'),
+      hoverText: getHoverColor(element, 'color')
+    };
+  }
+
+  // Helper function to get hover state colors
+  function getHoverColor(element, property) {
+    const clone = element.cloneNode(true);
+    clone.style.display = 'none';
+    document.body.appendChild(clone);
+    clone.classList.add('hover');
+    const hoverStyle = window.getComputedStyle(clone, ':hover');
+    const color = hoverStyle[property];
+    document.body.removeChild(clone);
+    return color;
+  }
+
+  // Helper function to analyze typography
+  function getTypography(element) {
+    const computed = window.getComputedStyle(element);
+    return {
+      fontFamily: computed.fontFamily,
+      fontSize: computed.fontSize,
+      fontWeight: computed.fontWeight,
+      lineHeight: computed.lineHeight,
+      letterSpacing: computed.letterSpacing,
+      textTransform: computed.textTransform
+    };
+  }
+
+  // Helper function to get shadows and effects
+  function getEffects(element) {
+    const computed = window.getComputedStyle(element);
+    return {
+      boxShadow: computed.boxShadow,
+      borderRadius: computed.borderRadius,
+      border: `${computed.borderWidth} ${computed.borderStyle} ${computed.borderColor}`,
+      transition: computed.transition
+    };
+  }
+
+  // Function to create a unique key for the button
+  function createButtonKey(buttonData) {
+    return JSON.stringify({
+      dimensions: buttonData.dimensions,
+      colors: buttonData.colors,
+      typography: buttonData.typography,
+      effects: buttonData.effects
+    });
+  }
+
+  // Find all button-like elements
+  const buttonElements = [
+    ...document.getElementsByTagName('button'),
+    ...document.getElementsByTagName('input'),
+    ...document.querySelectorAll('[role="button"]'),
+    ...document.querySelectorAll('.btn, .button, [class*="btn-"], [class*="button-"]')
+  ].filter(element => {
+    if (element.tagName === 'INPUT') {
+      return ['button', 'submit', 'reset'].includes(element.type);
+    }
+    return true;
+  });
+
+  // Analyze each button
+  buttonElements.forEach(element => {
+    const buttonData = {
+      element: {
+        tagName: element.tagName,
+        type: element.type || 'button',
+        classes: Array.from(element.classList),
+        text: element.innerText || element.value || ''
+      },
+      dimensions: getDimensions(element),
+      colors: getColors(element),
+      typography: getTypography(element),
+      effects: getEffects(element)
+    };
+
+    const key = createButtonKey(buttonData);
+    
+    if (buttonMap.has(key)) {
+      buttonMap.get(key).count++;
+      buttonMap.get(key).instances.push(buttonData.element);
+    } else {
+      buttonMap.set(key, {
+        ...buttonData,
+        count: 1,
+        instances: [buttonData.element]
+      });
+    }
+  });
+
+  return Array.from(buttonMap.entries()).map(([key, data]) => ({
+    key,
+    ...data
+  }));
+}
+
 // Listen for messages from the popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Content script received message:', request);
@@ -471,6 +597,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Get typography data
     const typography = analyzeTypography();
     sendResponse({ typography });
+  } else if (request.action === 'getButtons') {
+    try {
+      const buttons = analyzeButtons();
+      sendResponse({ buttons });
+    } catch (error) {
+      console.error('Error analyzing buttons:', error);
+      sendResponse({ error: error.message });
+    }
   }
   return true; // Keep the message channel open for async response
 });
