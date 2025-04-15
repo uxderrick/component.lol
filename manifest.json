@@ -3,30 +3,33 @@
   "name": "Component.lol",
   "version": "1.0",
   "author": "Derrick Tsorme",
-  "description": "Explore design components and assets from websites",
+  "description": "Extract design tokens from any website",
   "permissions": [
     "activeTab",
     "scripting",
+    "storage",
     "tabs"
   ],
-  "content_scripts": [
-    {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": [
-        "content.js"
-      ],
-      "run_at": "document_end"
-    }
+  "host_permissions": [
+    "<all_urls>"
   ],
-  "background": {
-    "service_worker": "background.js"
-  },
   "action": {
     "default_popup": "index.html",
     "default_icon": "images/icon.svg"
   },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["pages/*", "content-scripts/*"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "icons": {
     "16": "images/icon.svg",
     "48": "images/icon.svg",

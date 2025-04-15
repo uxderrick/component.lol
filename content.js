@@ -569,6 +569,239 @@ function analyzeButtons() {
   }));
 }
 
+// Function to get dimensions of an image
+async function getImageDimensions(url) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      resolve({
+        width: img.naturalWidth,
+        height: img.naturalHeight
+      });
+    };
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
+// Function to get absolute URL
+function getAbsoluteURL(url) {
+  if (!url) return null;
+  try {
+    return new URL(url, window.location.href).href;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Function to get file size
+async function getFileSize(url) {
+  try {
+    const response = await fetch(url, { method: 'HEAD' });
+    const size = response.headers.get('content-length');
+    return size ? parseInt(size) : 0;
+  } catch (error) {
+    console.warn(`Could not get size for ${url}:`, error);
+    return 0;
+  }
+}
+
+// Function to check if an element is likely an icon
+function isLikelyIcon(element, url = '', dimensions = {}) {
+  const { width, height } = dimensions;
+  
+  // Check dimensions (icons are typically small and square)
+  const isSmallAndSquare = width && height && 
+    width <= 64 && height <= 64 && 
+    Math.abs(width - height) <= 4;
+
+  // Check URL patterns
+  const urlLower = url.toLowerCase();
+  const isIconPath = urlLower.includes('/icons/') || 
+                    urlLower.includes('/icon/') ||
+                    urlLower.includes('icon.') ||
+                    urlLower.includes('-icon.') ||
+                    urlLower.includes('_icon.');
+
+  // Check element context
+  const isInIconContext = element.closest('[class*="icon"]') !== null ||
+                        element.closest('[id*="icon"]') !== null ||
+                        element.getAttribute('class')?.toLowerCase().includes('icon') ||
+                        element.getAttribute('id')?.toLowerCase().includes('icon');
+
+  return isSmallAndSquare || isIconPath || isInIconContext;
+}
+
+// Function to scan for assets
+async function scanAssets() {
+  const assets = new Map();
+
+  // Scan for images
+  const imageElements = document.querySelectorAll('img');
+  for (const img of imageElements) {
+    const src = getAbsoluteURL(img.src);
+    if (src && !assets.has(src)) {
+      const dimensions = await getImageDimensions(src);
+      const size = await getFileSize(src);
+      const isIcon = isLikelyIcon(img, src, dimensions);
+      
+      assets.set(src, {
+        name: src.split('/').pop(),
+        type: isIcon ? 'icon' : 'image',
+        url: src,
+        size,
+        dimensions,
+        isIcon
+      });
+    }
+  }
+
+  // Scan for background images
+  const elements = document.querySelectorAll('*');
+  for (const el of elements) {
+    const style = window.getComputedStyle(el);
+    const bgImage = style.backgroundImage;
+    if (bgImage && bgImage !== 'none') {
+      const matches = bgImage.match(/url\(['"]?([^'"\)]+)['"]?\)/g) || [];
+      for (const match of matches) {
+        const url = match.replace(/url\(['"]?([^'"\)]+)['"]?\)/, '$1');
+        const absoluteUrl = getAbsoluteURL(url);
+        if (absoluteUrl && !assets.has(absoluteUrl)) {
+          const dimensions = await getImageDimensions(absoluteUrl);
+          const size = await getFileSize(absoluteUrl);
+          const isIcon = isLikelyIcon(el, absoluteUrl, dimensions);
+          
+          assets.set(absoluteUrl, {
+            name: absoluteUrl.split('/').pop(),
+            type: isIcon ? 'icon' : 'background',
+            url: absoluteUrl,
+            size,
+            dimensions,
+            isIcon
+          });
+        }
+      }
+    }
+  }
+
+  // Scan for SVGs
+  const svgElements = document.querySelectorAll('svg');
+  svgElements.forEach(svg => {
+    const svgContent = svg.outerHTML;
+    const key = svgContent;
+    if (!assets.has(key)) {
+      const dimensions = {
+        width: svg.clientWidth,
+        height: svg.clientHeight
+      };
+      const blob = new Blob([svgContent], {type: 'image/svg+xml'});
+      const isIcon = isLikelyIcon(svg, '', dimensions);
+      
+      assets.set(key, {
+        name: 'icon.svg',
+        type: isIcon ? 'icon' : 'svg',
+        content: svgContent,
+        size: blob.size,
+        dimensions,
+        isIcon
+      });
+    }
+  });
+
+  // Scan for video sources
+  const videoSources = document.querySelectorAll('video source');
+  for (const source of videoSources) {
+    const src = getAbsoluteURL(source.src);
+    if (src && !assets.has(src)) {
+      const size = await getFileSize(src);
+      assets.set(src, {
+        name: src.split('/').pop(),
+        type: 'video',
+        url: src,
+        size
+      });
+    }
+  }
+
+  return Array.from(assets.values());
+}
+
+// Function to get typography from the webpage
+function getTypography() {
+  const typographyMap = new Map();
+  
+  // Helper function to process an element's typography
+  function processElement(element) {
+    const styles = window.getComputedStyle(element);
+    const fontFamily = styles.fontFamily;
+    
+    // Skip if no font family or if it's a system font
+    if (!fontFamily || fontFamily === 'inherit') return;
+    
+    const key = `${fontFamily}-${styles.fontWeight}-${styles.fontSize}-${styles.lineHeight}`;
+    
+    if (!typographyMap.has(key)) {
+      typographyMap.set(key, {
+        styles: {
+          fontFamily: fontFamily,
+          fontWeight: styles.fontWeight,
+          fontStyle: styles.fontStyle,
+          fontSize: styles.fontSize,
+          lineHeight: styles.lineHeight,
+          letterSpacing: styles.letterSpacing,
+          textTransform: styles.textTransform
+        },
+        elements: [],
+        count: 0
+      });
+    }
+    
+    const entry = typographyMap.get(key);
+    entry.elements.push(element.tagName.toLowerCase());
+    entry.count++;
+  }
+  
+  // Process all text-containing elements
+  const textElements = document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, a, li, blockquote, label, button, input[type="text"], textarea');
+  textElements.forEach(processElement);
+  
+  // Also check stylesheets for typography rules
+  try {
+    Array.from(document.styleSheets).forEach(sheet => {
+      try {
+        Array.from(sheet.cssRules || sheet.rules).forEach(rule => {
+          if (rule.style && rule.style.fontFamily) {
+            const fontFamily = rule.style.fontFamily;
+            const key = `${fontFamily}-${rule.style.fontWeight || '400'}-${rule.style.fontSize || '16px'}-${rule.style.lineHeight || 'normal'}`;
+            
+            if (!typographyMap.has(key)) {
+              typographyMap.set(key, {
+                styles: {
+                  fontFamily: fontFamily,
+                  fontWeight: rule.style.fontWeight || '400',
+                  fontStyle: rule.style.fontStyle || 'normal',
+                  fontSize: rule.style.fontSize || '16px',
+                  lineHeight: rule.style.lineHeight || 'normal',
+                  letterSpacing: rule.style.letterSpacing || 'normal',
+                  textTransform: rule.style.textTransform || 'none'
+                },
+                elements: [],
+                count: 0
+              });
+            }
+          }
+        });
+      } catch (e) {
+        // Skip inaccessible stylesheets
+      }
+    });
+  } catch (e) {
+    console.warn('Could not access some stylesheets:', e);
+  }
+  
+  return Object.fromEntries(typographyMap);
+}
+
 // Listen for messages from the popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Content script received message:', request);
@@ -578,12 +811,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('Sending colors:', colors);
     sendResponse({ colors });
   } else if (request.action === 'getMetaData') {
-    const metaData = {
-      title: document.title,
-      description: document.querySelector('meta[name="description"]')?.content || 
-                  document.querySelector('meta[property="og:description"]')?.content ||
-                  'No description available'
-    };
+    const metaData = getMetaData();
     console.log('Sending meta data:', metaData);
     sendResponse(metaData);
   } else if (request.action === 'getComponentCounts') {
@@ -594,9 +822,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const gradients = extractGradients();
     sendResponse({ gradients });
   } else if (request.action === 'getTypography') {
-    // Get typography data
-    const typography = analyzeTypography();
-    sendResponse({ typography });
+    try {
+      const typography = getTypography();
+      console.log('Sending typography data:', typography);
+      sendResponse({ typography });
+    } catch (error) {
+      console.error('Error getting typography:', error);
+      sendResponse({ error: error.message });
+    }
   } else if (request.action === 'getButtons') {
     try {
       const buttons = analyzeButtons();
@@ -605,6 +838,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       console.error('Error analyzing buttons:', error);
       sendResponse({ error: error.message });
     }
+  } else if (request.action === 'scanAssets') {
+    scanAssets()
+      .then(assets => {
+        console.log('Sending assets:', assets);
+        sendResponse({ assets });
+      })
+      .catch(error => {
+        console.error('Error scanning assets:', error);
+        sendResponse({ assets: [] });
+      });
+    return true; // Keep the message channel open for async response
   }
-  return true; // Keep the message channel open for async response
+  
+  // For non-async responses
+  if (request.action === 'getMetaData' || request.action === 'getTypography') {
+    return true;
+  }
 });

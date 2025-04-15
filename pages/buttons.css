@@ -24,7 +24,7 @@
   background: var(--color-surface);
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
-  padding: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
 }
 
 .selector-group label {

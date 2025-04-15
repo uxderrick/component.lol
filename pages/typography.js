@@ -194,6 +194,20 @@ function normalizeFontSize(fontSize, element, styleSheet) {
   return fontSize;
 }
 
+// Function to inject content script
+async function injectContentScript(tabId) {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: ['content.js']
+    });
+    return true;
+  } catch (error) {
+    console.error('Error injecting content script:', error);
+    return false;
+  }
+}
+
 // Function to get typography from the webpage
 async function getWebpageTypography() {
   try {
@@ -201,113 +215,84 @@ async function getWebpageTypography() {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     
     if (!tab) {
-      console.error('No active tab found');
-      return [];
+      throw new Error('No active tab found');
     }
-    
-    // Send message to content script to get typography
-    return new Promise((resolve) => {
-      chrome.tabs.sendMessage(tab.id, { action: 'getTypography' }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.error('Error communicating with content script:', chrome.runtime.lastError);
-          resolve([]);
-          return;
-        }
-        
-        if (!response || !response.typography) {
-          console.error('No typography data in response:', response);
-          resolve([]);
-          return;
-        }
-        
-        try {
-          console.log('Raw typography data:', response.typography);
-          
-          const typographyData = Object.values(response.typography)
-            .filter(item => item && item.styles && item.styles.fontFamily) // Filter out invalid items
-            .map(item => {
-              // Safely get font family
-              const fontFamily = item.styles.fontFamily.split(',')[0].replace(/['"]/g, '').trim();
-              if (!fontFamily) return null; // Skip if no valid font family
-              
-              // Safely get font weight
-              const fontWeight = item.styles.fontWeight || '400';
-              
-              // Safely get font style
-              const fontStyle = item.styles.fontStyle || 'normal';
-              
-              // Safely get font size
-              let fontSize = item.styles.fontSize || '16px';
-              if (fontSize === 'inherit' || fontSize === 'normal') {
-                fontSize = '16px';
-              }
-              
-              // Safely get line height
-              let lineHeight = item.styles.lineHeight || '1.5';
-              if (lineHeight === 'inherit' || lineHeight === 'normal') {
-                lineHeight = '1.5';
-              }
-              
-              return {
-                family: fontFamily,
-                weights: [fontWeight],
-                styles: [fontStyle],
-                fontSize: fontSize,
-                lineHeight: lineHeight,
-                element: {
-                  type: item.element?.type || 'unknown',
-                  tagName: item.element?.tagName || 'UNKNOWN'
-                }
-              };
-            })
-            .filter(Boolean); // Remove null entries
-          
-          // Group by font family and merge properties
-          const fontMap = new Map();
-          typographyData.forEach(data => {
-            if (!fontMap.has(data.family)) {
-              fontMap.set(data.family, {
-                family: data.family,
-                weights: new Set(),
-                styles: new Set(),
-                elements: new Set(),
-                fontSizes: new Set(),
-                lineHeights: new Set()
-              });
-            }
-            
-            const font = fontMap.get(data.family);
-            if (data.weights[0]) font.weights.add(data.weights[0]);
-            if (data.styles[0]) font.styles.add(data.styles[0]);
-            if (data.element?.type) font.elements.add(data.element.type);
-            if (data.fontSize) font.fontSizes.add(data.fontSize);
-            if (data.lineHeight) font.lineHeights.add(data.lineHeight);
-          });
-          
-          // Convert to array and format
-          const results = Array.from(fontMap.values())
-            .filter(font => font.family && font.weights.size > 0) // Ensure we have valid fonts
-            .map(font => ({
-              family: font.family,
-              weights: Array.from(font.weights).sort((a, b) => Number(a) - Number(b)),
-              styles: Array.from(font.styles),
-              elements: Array.from(font.elements),
-              fontSizes: Array.from(font.fontSizes),
-              lineHeights: Array.from(font.lineHeights)
-            }));
-          
-          console.log('Processed typography results:', results);
-          resolve(results);
-        } catch (error) {
-          console.error('Error processing typography data:', error);
-          resolve([]);
-        }
-      });
-    });
+
+    // First try to send message directly
+    try {
+      const response = await chrome.tabs.sendMessage(tab.id, { action: 'getTypography' });
+      if (response && response.typography) {
+        return processTypographyData(response.typography);
+      }
+    } catch (error) {
+      console.log('Initial message failed, attempting to inject content script');
+    }
+
+    // If direct message fails, inject content script and try again
+    const injected = await injectContentScript(tab.id);
+    if (!injected) {
+      throw new Error('Failed to inject content script');
+    }
+
+    // Wait for script to initialize
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Try sending message again
+    try {
+      const response = await chrome.tabs.sendMessage(tab.id, { action: 'getTypography' });
+      if (!response || !response.typography) {
+        throw new Error('No typography data received from page');
+      }
+      return processTypographyData(response.typography);
+    } catch (error) {
+      console.error('Error communicating with content script:', error);
+      throw new Error('Could not get typography data. Please refresh the page and try again.');
+    }
   } catch (error) {
     console.error('Error in getWebpageTypography:', error);
-    return [];
+    throw error;
   }
+}
+
+// Helper function to process typography data
+function processTypographyData(rawData) {
+  console.log('Raw typography data:', rawData);
+  
+  return Object.values(rawData)
+    .filter(item => item && item.styles && item.styles.fontFamily) // Filter out invalid items
+    .map(item => {
+      // Safely get font family
+      const fontFamily = item.styles.fontFamily.split(',')[0].replace(/['"]/g, '').trim();
+      if (!fontFamily) return null; // Skip if no valid font family
+      
+      // Safely get font weight
+      const fontWeight = item.styles.fontWeight || '400';
+      
+      // Safely get font style
+      const fontStyle = item.styles.fontStyle || 'normal';
+      
+      // Safely get font size
+      let fontSize = item.styles.fontSize || '16px';
+      if (fontSize === 'inherit' || fontSize === 'normal') {
+        fontSize = '16px';
+      }
+      
+      // Safely get line height
+      let lineHeight = item.styles.lineHeight || '1.5';
+      if (lineHeight === 'inherit' || lineHeight === 'normal') {
+        lineHeight = '1.5';
+      }
+      
+      return {
+        family: fontFamily,
+        weight: fontWeight,
+        style: fontStyle,
+        size: fontSize,
+        lineHeight: lineHeight,
+        category: getFontCategory({ family: fontFamily, elements: item.elements || [] })
+      };
+    })
+    .filter(Boolean); // Remove any null entries
 }
 
 // Function to extract font size value from CSS variable
@@ -428,7 +413,7 @@ async function updateTypographyDisplay(format, weight, category) {
   const grid = document.getElementById('typography-grid');
   
   // Show loading state
-    grid.innerHTML = `
+  grid.innerHTML = `
     <div class="color-family">
       <div class="skeleton skeleton-family-header"></div>
       <div class="colors-grid">
@@ -442,8 +427,8 @@ async function updateTypographyDisplay(format, weight, category) {
           </div>
         `).join('')}
       </div>
-      </div>
-    `;
+    </div>
+  `;
 
   try {
     const fonts = await getWebpageTypography();
@@ -451,7 +436,7 @@ async function updateTypographyDisplay(format, weight, category) {
     // Clear existing content
     grid.innerHTML = '';
     
-    if (fonts.length === 0) {
+    if (!fonts || fonts.length === 0) {
       grid.innerHTML = `
         <div class="empty-state">
           <p>No fonts found on this page</p>
@@ -460,67 +445,21 @@ async function updateTypographyDisplay(format, weight, category) {
       `;
       return;
     }
-    
-    // Process raw typography data to create individual font entries
-    const processedFonts = fonts.flatMap(font => {
-      // Get unique combinations of font properties as they appear on the page
-      const uniqueCombinations = new Set();
-      const fontEntries = [];
-      
-      // Create entries only for font sizes that exist
-      font.fontSizes.forEach((fontSize, i) => {
-        if (fontSize === 'N/A') return;
-        
-        // Use corresponding line height or default
-        const lineHeight = font.lineHeights[i] || '1.5';
-        
-        // Use corresponding weight or the first weight
-        const weight = font.weights[0] || '400';
-        
-        // Create a unique key for this combination
-        const key = `${fontSize}-${lineHeight}-${weight}`;
-        
-        // Only add if we haven't seen this combination before
-        if (!uniqueCombinations.has(key)) {
-          uniqueCombinations.add(key);
-          fontEntries.push({
-            family: font.family,
-            weights: [weight],
-            styles: font.styles,
-            elements: font.elements,
-            fontSizes: [fontSize],
-            lineHeights: [lineHeight]
-          });
-        }
-      });
-      
-      return fontEntries;
-    });
-    
-    // Group fonts by family and calculate total usage
-    const fontsByFamily = new Map();
-    const familyUsageCounts = new Map();
-    
-    processedFonts.forEach(font => {
-      const family = font.family;
-      if (!fontsByFamily.has(family)) {
-        fontsByFamily.set(family, []);
-        familyUsageCounts.set(family, 0);
+
+    // Group fonts by family
+    const fontsByFamily = fonts.reduce((acc, font) => {
+      if (!acc[font.family]) {
+        acc[font.family] = [];
       }
-      fontsByFamily.get(family).push(font);
-      // Increment the usage count for this family
-      familyUsageCounts.set(family, familyUsageCounts.get(family) + 1);
-    });
-    
-    // Convert to array and sort families by usage count
-    const sortedFamilies = Array.from(fontsByFamily.entries())
-      .sort(([familyA], [familyB]) => {
-        const countA = familyUsageCounts.get(familyA) || 0;
-        const countB = familyUsageCounts.get(familyB) || 0;
-        return countB - countA; // Sort in descending order
-      });
-    
-    // Create sections for each family in sorted order
+      acc[font.family].push(font);
+      return acc;
+    }, {});
+
+    // Sort families by usage (number of variations)
+    const sortedFamilies = Object.entries(fontsByFamily)
+      .sort(([, fontsA], [, fontsB]) => fontsB.length - fontsA.length);
+
+    // Create sections for each family
     sortedFamilies.forEach(([family, fonts]) => {
       const section = document.createElement('div');
       section.className = 'color-family';
@@ -534,19 +473,27 @@ async function updateTypographyDisplay(format, weight, category) {
       
       // Sort fonts within family by size and weight
       fonts.sort((a, b) => {
-        // Sort by font size numerically
-        const sizeA = parseFloat(a.fontSizes[0]);
-        const sizeB = parseFloat(b.fontSizes[0]);
+        const sizeA = parseFloat(a.size);
+        const sizeB = parseFloat(b.size);
         if (sizeA !== sizeB) return sizeA - sizeB;
         
-        // If sizes are equal, sort by weight
-        const weightA = parseInt(a.weights[0]);
-        const weightB = parseInt(b.weights[0]);
+        const weightA = parseInt(a.weight);
+        const weightB = parseInt(b.weight);
         return weightA - weightB;
       });
-      
+
+      // Create font cards
       fonts.forEach(font => {
-        const card = createFontCard(font);
+        // Adapt font data to match createFontCard expectations
+        const adaptedFont = {
+          family: font.family,
+          weights: [font.weight],
+          fontSizes: [font.size],
+          lineHeights: [font.lineHeight],
+          category: font.category
+        };
+        
+        const card = createFontCard(adaptedFont);
         fontsGrid.appendChild(card);
       });
       
@@ -554,6 +501,7 @@ async function updateTypographyDisplay(format, weight, category) {
       section.appendChild(fontsGrid);
       grid.appendChild(section);
     });
+
   } catch (error) {
     console.error('Error updating typography display:', error);
     grid.innerHTML = `

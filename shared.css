@@ -85,7 +85,7 @@ body {
 
 /* Title section */
 .title-section {
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: var(--spacing-md); 
 }
 
 h1 {

@@ -346,4 +346,70 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Initial load
   await updateButtonsDisplay();
-}); 
+});
+
+// Function to analyze buttons on the webpage
+function analyzeButtons() {
+  const buttonMap = new Map();
+  
+  // Helper function to get computed dimensions
+  function getDimensions(element) {
+    const computed = window.getComputedStyle(element);
+    const rect = element.getBoundingClientRect();
+    return {
+      width: Math.round(rect.width),
+      height: Math.round(rect.height),
+      padding: {
+        top: computed.paddingTop,
+        right: computed.paddingRight,
+        bottom: computed.paddingBottom,
+        left: computed.paddingLeft
+      }
+    };
+  }
+
+  // Helper function to get colors
+  function getColors(element) {
+    const computed = window.getComputedStyle(element);
+    return {
+      background: computed.backgroundColor,
+      text: computed.color,
+      border: computed.borderColor,
+      hoverBg: getHoverColor(element, 'backgroundColor'),
+      hoverText: getHoverColor(element, 'color')
+    };
+  }
+
+  // Helper function to check if an anchor tag is likely a button
+  function isButtonLikeAnchor(element) {
+    const computed = window.getComputedStyle(element);
+    const hasButtonClasses = Array.from(element.classList).some(cls => 
+      cls.toLowerCase().includes('btn') || 
+      cls.toLowerCase().includes('button')
+    );
+    const hasButtonRole = element.getAttribute('role') === 'button';
+    const hasButtonStyles = 
+      computed.display.includes('flex') || 
+      computed.backgroundColor !== 'rgba(0, 0, 0, 0)' ||
+      computed.border !== 'none' ||
+      computed.borderRadius !== '0px';
+    
+    return hasButtonClasses || hasButtonRole || hasButtonStyles;
+  }
+
+  // Find all button-like elements
+  const buttonElements = [
+    ...document.getElementsByTagName('button'),
+    ...document.getElementsByTagName('input'),
+    ...document.getElementsByTagName('a'), // Include all <a> tags without filtering
+    ...document.querySelectorAll('[role="button"]'),
+    ...document.querySelectorAll('.btn, .button, [class*="btn-"], [class*="button-"]')
+  ].filter(element => {
+    if (element.tagName === 'INPUT') {
+      return ['button', 'submit', 'reset'].includes(element.type);
+    }
+    return true;
+  });
+
+  // ... rest of the existing code ...
+} 
