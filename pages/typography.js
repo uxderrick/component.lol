@@ -1,551 +1,684 @@
-// Function to show toast notification
-function showToast(message) {
-  const toast = document.getElementById('toast');
+// Toast notification functionality
+const showToast = (message) => {
+  const toast = document.getElementById('copied-toast');
   if (!toast) return;
   
   toast.textContent = message;
-  // Use standard CSS class for visibility/transition
-  toast.classList.add('show'); 
+  toast.classList.add('show');
   
   setTimeout(() => {
     toast.classList.remove('show');
   }, 2000);
-}
+};
 
-// Function to copy text to clipboard
-async function copyToClipboard(text) {
-  if (!navigator.clipboard) {
-    showToast('Clipboard API not available');
-    console.error('Clipboard API not supported');
-    return;
-  }
+// Clipboard functionality
+const copyToClipboard = async (text) => {
   try {
     await navigator.clipboard.writeText(text);
-    showToast('Copied to clipboard!');
+    showToast('Typography styles copied to clipboard!');
   } catch (err) {
     console.error('Failed to copy:', err);
     showToast('Failed to copy to clipboard');
   }
-}
+};
 
-// Helper to generate CSS string for a single style
-function generateStyleCss(styles) {
-  let css = `font-family: ${styles.fontFamily};
-`;
-  css += `font-size: ${styles.fontSize};
-`;
-  css += `font-weight: ${styles.fontWeight};
-`;
-  css += `line-height: ${styles.lineHeight};
-`;
-  if (styles.letterSpacing && styles.letterSpacing !== 'normal' && styles.letterSpacing !== '0px') {
-    css += `letter-spacing: ${styles.letterSpacing};
-`;
-  }
-  return css.trim();
-}
+// Enhanced Font Scanning System
+const enhancedScanFonts = () => {
+  console.time('enhancedFontScan');
+  const fontMap = new Map();
+  const processedElements = new Set();
 
-// Function to create a typography item card with standard CSS classes
-function createTypographyItem(element, styles, count) {
-  const item = document.createElement('div');
-  item.className = 'typography-card'; // Use standard CSS class
+  // Helper to process font data
+  const processFontData = (family, weight, style, source) => {
+    if (!family || family.toLowerCase() === 'inherit') return;
+    
+    const normalizedFamily = family.replace(/['"]/g, '').trim();
+    if (!fontMap.has(normalizedFamily)) {
+      fontMap.set(normalizedFamily, {
+        family: normalizedFamily,
+        weights: new Set(),
+        styles: new Set(),
+        sources: new Set(),
+        fallbacks: new Set()
+      });
+    }
 
-  // --- Preview Area ---
-  const previewContainer = document.createElement('div');
-  previewContainer.className = 'card-preview-area'; // Standard CSS class
-  
-  const previewText = document.createElement('div');
-  previewText.className = 'card-preview-text'; // Standard CSS class
-  previewText.textContent = 'Aa';
-  
-  // Apply dynamic styles directly to the preview text
-  previewText.style.fontFamily = styles.fontFamily;
-  previewText.style.fontSize = styles.fontSize; 
-  previewText.style.fontWeight = styles.fontWeight;
-  previewText.style.lineHeight = styles.lineHeight;
-  if (styles.letterSpacing && styles.letterSpacing !== 'normal' && styles.letterSpacing !== '0px') {
-    previewText.style.letterSpacing = styles.letterSpacing;
-  }
-  
-  previewContainer.appendChild(previewText);
+    const font = fontMap.get(normalizedFamily);
+    if (weight) font.weights.add(weight);
+    if (style) font.styles.add(style);
+    if (source) font.sources.add(source);
+  };
 
-  // --- Details Area ---
-  const details = document.createElement('div');
-  details.className = 'card-details-area'; // Standard CSS class
+  // 1. Scan Stylesheets (including @font-face rules)
+  try {
+    const sheets = Array.from(document.styleSheets).filter(sheet => {
+      try {
+        sheet.cssRules;
+        return true;
+      } catch (e) {
+        console.warn(`Cross-origin stylesheet skipped: ${sheet.href}`);
+        return false;
+      }
+    });
 
-  const topDetails = document.createElement('div');
-
-  const title = document.createElement('div');
-  title.className = 'card-title'; // Standard CSS class
-  const elementType = element?.tagName?.toLowerCase() || element?.type || 'text';
-  title.textContent = elementType.charAt(0).toUpperCase() + elementType.slice(1);
-  if (count > 1) {
-    title.textContent += ` (${count})`;
-  }
-
-  const fontFamily = document.createElement('div');
-  fontFamily.className = 'card-font-family'; // Standard CSS class
-  fontFamily.textContent = styles.fontFamily.split(',')[0].replace(/["']/g, '');
-
-  const specs = document.createElement('div');
-  specs.className = 'card-specs'; // Standard CSS class
-
-  const sizeLineHeight = document.createElement('div');
-  sizeLineHeight.className = 'card-spec-item'; // Standard CSS class
-  sizeLineHeight.textContent = `Size: ${styles.fontSize} / ${styles.lineHeight}`;
-  specs.appendChild(sizeLineHeight);
-
-  const weight = styles.fontWeight;
-  const weightLabel = weight === '400' ? 'Regular' : 
-                     weight === '700' ? 'Bold' :
-                     weight === '600' ? 'Semi Bold' :
-                     weight === '500' ? 'Medium' :
-                     weight === '300' ? 'Light' :
-                     `${weight}`;
-  const fontWeightSpan = document.createElement('div');
-  fontWeightSpan.className = 'card-spec-item'; // Standard CSS class
-  fontWeightSpan.textContent = `Weight: ${weightLabel}`;
-  specs.appendChild(fontWeightSpan);
-
-  if (styles.letterSpacing && styles.letterSpacing !== 'normal' && styles.letterSpacing !== '0px') {
-    const letterSpacingSpan = document.createElement('div');
-    letterSpacingSpan.className = 'card-spec-item'; // Standard CSS class
-    letterSpacingSpan.textContent = `Spacing: ${styles.letterSpacing}`;
-    specs.appendChild(letterSpacingSpan);
+    sheets.forEach(sheet => {
+      try {
+        Array.from(sheet.cssRules || []).forEach(rule => {
+          // Handle @font-face rules
+          if (rule instanceof CSSFontFaceRule) {
+            processFontData(
+              rule.style.fontFamily,
+              rule.style.fontWeight,
+              rule.style.fontStyle,
+              'font-face'
+            );
+          }
+          // Handle regular style rules
+          else if (rule.style?.fontFamily) {
+            rule.style.fontFamily.split(',').forEach(family => {
+              processFontData(
+                family,
+                rule.style.fontWeight,
+                rule.style.fontStyle,
+                'stylesheet'
+              );
+            });
+          }
+        });
+      } catch (e) {
+        console.warn('Error processing stylesheet rules:', e);
+      }
+    });
+  } catch (e) {
+    console.warn('Error scanning stylesheets:', e);
   }
 
-  topDetails.appendChild(title);
-  topDetails.appendChild(fontFamily);
-  topDetails.appendChild(specs);
-  
-  // --- Action Area ---
-  const actions = document.createElement('div');
-  actions.className = 'card-actions-area'; // Standard CSS class
+  // 2. Scan Computed Styles (including inheritance)
+  const processElement = (element) => {
+    if (processedElements.has(element)) return;
+    processedElements.add(element);
 
-  const copyButton = document.createElement('button');
-  copyButton.type = 'button'; 
-  copyButton.className = 'button button-copy-style'; // Standard CSS class
-  copyButton.setAttribute('aria-label', 'Copy CSS for this style');
-  // Use text content and insertAdjacentHTML for SVG to avoid innerHTML performance/security concerns if complex
-  copyButton.textContent = ' Copy Style'; 
-  copyButton.insertAdjacentHTML('afterbegin', '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M2 2h8v2h2V2c0-1.1-.9-2-2-2H2C.9 0 0 .9 0 2v8c0 1.1.9 2 2 2h2v-2H2V2z" fill="currentColor"/><path d="M6 6v8c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2zm2 0h8v8H8V6z" fill="currentColor"/></svg>');
+    const style = window.getComputedStyle(element);
+    if (!style.fontFamily) return;
 
-  
-  const styleCss = generateStyleCss(styles);
-  copyButton.addEventListener('click', (e) => {
-    e.stopPropagation(); 
-    copyToClipboard(styleCss);
-  });
+    // Handle font-family chains (including fallbacks)
+    const families = style.fontFamily.split(',');
+    families.forEach((family, index) => {
+      const normalizedFamily = family.replace(/['"]/g, '').trim();
+      
+      processFontData(
+        normalizedFamily,
+        style.fontWeight,
+        style.fontStyle,
+        'computed'
+      );
 
-  copyButton.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      e.stopPropagation();
-      copyToClipboard(styleCss);
+      // Track fallback relationships
+      if (index > 0) {
+        const primaryFont = families[0].replace(/['"]/g, '').trim();
+        if (fontMap.has(primaryFont)) {
+          fontMap.get(primaryFont).fallbacks.add(normalizedFamily);
+        }
+      }
+    });
+
+    // Process children for inheritance
+    Array.from(element.children).forEach(processElement);
+  };
+
+  // Start processing from the root
+  processElement(document.documentElement);
+
+  // 3. Set up dynamic font detection
+  const fontChangeObserver = new MutationObserver((mutations) => {
+    const hasStyleChanges = mutations.some(mutation => 
+      mutation.type === 'childList' && 
+      Array.from(mutation.addedNodes).some(node => 
+        node.nodeName === 'STYLE' || 
+        node.nodeName === 'LINK' ||
+        (node instanceof Element && node.style.fontFamily)
+      )
+    );
+
+    if (hasStyleChanges) {
+      console.log('Font changes detected, rescanning...');
+      enhancedScanFonts();
     }
   });
 
-  actions.appendChild(copyButton);
+  // Observe both head and body for font changes
+  fontChangeObserver.observe(document.head, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['style']
+  });
+  fontChangeObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['style']
+  });
+
+  // Format results
+  const results = Array.from(fontMap.entries()).map(([family, data]) => ({
+    family,
+    weights: Array.from(data.weights).sort((a, b) => Number(a) - Number(b)),
+    styles: Array.from(data.styles),
+    sources: Array.from(data.sources),
+    fallbacks: Array.from(data.fallbacks),
+    usage: processedElements.size
+  }));
+
+  console.timeEnd('enhancedFontScan');
+  return results;
+};
+
+// Helper function to display results in a friendly format
+const displayFontResults = (results) => {
+  console.group('Font Scan Results');
+  results.forEach(font => {
+    console.group(`${font.family}`);
+    console.log(`Weights: ${font.weights.join(', ')}`);
+    console.log(`Styles: ${font.styles.join(', ')}`);
+    console.log(`Sources: ${font.sources.join(', ')}`);
+    if (font.fallbacks.length) {
+      console.log(`Fallbacks: ${font.fallbacks.join(', ')}`);
+    }
+    console.groupEnd();
+  });
+  console.groupEnd();
+};
+
+// Replace the old scanFonts with the enhanced version
+const scanFonts = enhancedScanFonts;
+
+// Create font card element
+const createFontCard = (fontData) => {
+  const card = document.createElement('div');
+  card.className = 'font-card';
   
-  details.appendChild(topDetails);
-  details.appendChild(actions);
+  const weightName = {
+    '100': 'Thin',
+    '200': 'Extra Light',
+    '300': 'Light',
+    '400': 'Regular',
+    '500': 'Medium',
+    '600': 'Semi Bold',
+    '700': 'Bold',
+    '800': 'Extra Bold',
+    '900': 'Black'
+  }[fontData.weights[0]] || 'Regular';
 
-  item.appendChild(previewContainer);
-  item.appendChild(details);
+  // Get font category and determine appropriate size
+  const category = getFontCategory(fontData);
+  const fontStyles = getFontStylesByCategory(category);
 
-  return item;
-}
-
-// --- Modal Functionality with standard CSS ---
-let exportModal = null;
-let previouslyFocusedElement = null; 
-let handleModalKeyDown = null; 
-
-function createExportModal(cssVariables) {
-  if (exportModal) return; 
-
-  previouslyFocusedElement = document.activeElement; 
-
-  exportModal = document.createElement('div');
-  exportModal.id = 'export-modal';
-  exportModal.className = 'modal-overlay'; // Standard CSS class
-  exportModal.setAttribute('role', 'dialog');
-  exportModal.setAttribute('aria-modal', 'true');
-  exportModal.setAttribute('aria-labelledby', 'export-modal-title');
-  exportModal.setAttribute('aria-hidden', 'true'); // Hide initially
-  
-  exportModal.innerHTML = `
-    <div class="modal-content" tabindex="-1">
-      <div class="modal-header">
-        <h2 id="export-modal-title" class="modal-title">Export CSS Variables</h2>
-        <button type="button" id="close-modal-button" class="button button-icon button-close-modal" aria-label="Close modal">
-          <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-        </button>
-      </div>
-      <div class="modal-body">
-        <p class="modal-description">Copy and paste these CSS variables into your global stylesheet.</p>
-        <div class="code-preview-container">
-          <pre class="code-preview-content"><code class="language-css">${cssVariables.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>
-        </div>
-      </div>
-      <div class="modal-footer">
-         <button type="button" id="copy-modal-css-button" class="button button-primary">
-           <svg class="icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M2 2h8v2h2V2c0-1.1-.9-2-2-2H2C.9 0 0 .9 0 2v8c0 1.1.9 2 2 2h2v-2H2V2z" fill="currentColor"/><path d="M6 6v8c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2zm2 0h8v8H8V6z" fill="currentColor"/></svg>
-           <span class="button-text">Copy Variables</span>
-         </button>
-         <button type="button" id="cancel-modal-button" class="button button-secondary">
-           Close
-         </button>
+  card.innerHTML = `
+    <div class="font-preview">
+      <p class="font-preview-text" style="
+        font-family: '${fontData.family}';
+        font-size: ${fontStyles.fontSize};
+        line-height: ${fontStyles.lineHeight};"
+      >Aa</p>
+    </div>
+    <div class="font-info">
+      <div class="font-name">${fontData.family}</div>
+      <div class="font-details">${weightName} ${fontData.weights[0]}</div>
+      <div class="font-meta">
+        <span class="font-size"></span>
       </div>
     </div>
   `;
 
-  document.body.appendChild(exportModal);
-
-  // Add listeners
-  const closeModalButton = exportModal.querySelector('#close-modal-button');
-  const cancelModalButton = exportModal.querySelector('#cancel-modal-button');
-  const copyModalCssButton = exportModal.querySelector('#copy-modal-css-button');
-  const modalContent = exportModal.querySelector('.modal-content');
-
-  const hide = () => hideExportModal();
-
-  closeModalButton?.addEventListener('click', hide);
-  cancelModalButton?.addEventListener('click', hide);
-  copyModalCssButton?.addEventListener('click', () => {
-    copyToClipboard(cssVariables);
-    const buttonText = copyModalCssButton.querySelector('.button-text');
-    if (buttonText) buttonText.textContent = 'Copied!';
-    setTimeout(() => {
-        if (buttonText) buttonText.textContent = 'Copy Variables';
-    }, 1500);
-  });
-
-  exportModal.addEventListener('click', (event) => {
-     if (event.target === exportModal) { 
-       hide();
-     }
-  });
-
-  const focusableElements = modalContent.querySelectorAll(
-    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-  );
-  const firstFocusableElement = focusableElements[0];
-  const lastFocusableElement = focusableElements[focusableElements.length - 1];
-
-  handleModalKeyDown = (event) => {
-    if (event.key === 'Escape') {
-      hide();
-      return;
-    }
-    if (event.key === 'Tab') {
-       if (focusableElements.length === 0) {
-         event.preventDefault();
-         return;
-       }
-      if (event.shiftKey) { 
-        if (document.activeElement === firstFocusableElement) {
-          lastFocusableElement.focus();
-          event.preventDefault();
-        }
-      } else { 
-        if (document.activeElement === lastFocusableElement) {
-          firstFocusableElement.focus();
-          event.preventDefault();
-        }
-      }
-    }
-  };
-
-  exportModal.addEventListener('keydown', handleModalKeyDown);
-
-  // Show modal using CSS class
+  // Get computed styles after the element is in the DOM
+  const previewText = card.querySelector('.font-preview-text');
+  const fontSizeSpan = card.querySelector('.font-size');
+  
+  // Wait for next frame to ensure styles are computed
   requestAnimationFrame(() => {
-      exportModal.classList.add('is-visible');
-      exportModal.setAttribute('aria-hidden', 'false');
-      firstFocusableElement?.focus(); 
+    const computedStyle = window.getComputedStyle(previewText);
+    fontData.fontSize = computedStyle.fontSize;
+    fontData.lineHeight = computedStyle.lineHeight;
+    fontData.color = computedStyle.color;
+    fontSizeSpan.textContent = fontData.fontSize;
   });
-}
-
-function hideExportModal() {
-  if (!exportModal) return;
   
-  exportModal.classList.remove('is-visible');
-  exportModal.setAttribute('aria-hidden', 'true');
+  card.addEventListener('click', () => {
+    const styles = generateFontStyles(fontData);
+    copyToClipboard(styles);
+  });
+  
+  return card;
+};
 
-  const handleTransitionEnd = (event) => {
-    // Ensure transitionend is from the overlay itself
-    if (event.target === exportModal) {
-        exportModal.removeEventListener('transitionend', handleTransitionEnd);
-        if (handleModalKeyDown) {
-            exportModal.removeEventListener('keydown', handleModalKeyDown);
-            handleModalKeyDown = null; 
-        }
-        exportModal?.remove();
-        exportModal = null;
-        previouslyFocusedElement?.focus();
+// Function to get font styles based on category
+const getFontStylesByCategory = (category) => {
+  const styles = {
+    'display': {
+      fontSize: '32px',
+      lineHeight: '1.1'
+    },
+    'heading': {
+      fontSize: '24px',
+      lineHeight: '1.2'
+    },
+    'body': {
+      fontSize: '16px',
+      lineHeight: '1.5'
+    },
+    'sans-serif': {
+      fontSize: '18px',
+      lineHeight: '1.4'
+    },
+    'serif': {
+      fontSize: '20px',
+      lineHeight: '1.3'
+    },
+    'monospace': {
+      fontSize: '14px',
+      lineHeight: '1.6'
+    },
+    'handwriting': {
+      fontSize: '28px',
+      lineHeight: '1.2'
+    },
+    'decorative': {
+      fontSize: '26px',
+      lineHeight: '1.1'
+    },
+    'system': {
+      fontSize: '16px',
+      lineHeight: '1.5'
     }
   };
 
-  exportModal.addEventListener('transitionend', handleTransitionEnd);
-}
+  return styles[category] || styles['body']; // Default to body styles if category not found
+};
 
-// Function to generate CSS variables
-function generateCSSVariables(typographyMap) {
-  let css = ':root {\n';
-  let index = 1; // Use index for unique variable names
+// Function to convert RGB color to Hex
+const rgbToHex = (rgb) => {
+  // Check if it's already a hex color
+  if (rgb.startsWith('#')) return rgb;
   
-  const sortedEntries = [...typographyMap.entries()].sort(([keyA], [keyB]) => keyA.localeCompare(keyB));
+  // Extract RGB values
+  const match = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+  if (!match) return '#000000';
+  
+  const r = parseInt(match[1]);
+  const g = parseInt(match[2]);
+  const b = parseInt(match[3]);
+  
+  // Convert to hex
+  const toHex = (n) => {
+    const hex = n.toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  };
+  
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+};
 
-  sortedEntries.forEach(([key, data]) => {
-    const { styles } = data;
-    const elementType = data.element?.tagName?.toLowerCase() || data.element?.type || 'text';
-    const sanitizedType = elementType.replace(/[^a-zA-Z0-9-]/g, '').replace(/^[^a-zA-Z]+|[^a-zA-Z0-9]+$/g, ''); // More robust sanitization
-    const baseName = `typography-${sanitizedType || 'custom'}-${index}`; // Fallback name
+// Generate font styles based on selected format
+const generateFontStyles = (fontData) => {
+  const format = document.getElementById('font-format').value;
+  const hexColor = rgbToHex(fontData.color || 'rgb(0, 0, 0)');
+  
+  if (format === 'tailwind') {
+    return `font-family: ${fontData.family};
+font-weight: ${fontData.weights[0]};
+font-size: ${fontData.fontSize};
+line-height: ${fontData.lineHeight};
+color: ${hexColor};`;
+  }
+  
+  return `font-family: '${fontData.family}';
+font-weight: ${fontData.weights[0]};
+font-size: ${fontData.fontSize};
+line-height: ${fontData.lineHeight};
+color: ${hexColor};`;
+};
 
-    css += `  /* Style Ref: ${key} (${elementType}) */\n`;
-    css += `  --${baseName}-font-family: ${styles.fontFamily};\n`;
-    css += `  --${baseName}-font-size: ${styles.fontSize};\n`;
-    css += `  --${baseName}-line-height: ${styles.lineHeight};\n`;
-    css += `  --${baseName}-font-weight: ${styles.fontWeight};\n`;
-    if (styles.letterSpacing && styles.letterSpacing !== 'normal' && styles.letterSpacing !== '0px') {
-      css += `  --${baseName}-letter-spacing: ${styles.letterSpacing};\n`;
-    }
-    css += `\n`;
-    index++;
+// Update typography display based on filters
+const updateTypographyDisplay = (format, weight, category) => {
+  const grid = document.getElementById('typography-grid');
+  const categorySelect = document.getElementById('font-category');
+  grid.innerHTML = '';
+  
+  const fonts = scanFonts();
+  
+  // Get available categories and their counts
+  const categoryCount = new Map();
+  fonts.forEach(font => {
+    const fontCategory = getFontCategory(font);
+    categoryCount.set(fontCategory, (categoryCount.get(fontCategory) || 0) + 1);
   });
   
-  css += '}';
-  return css;
-}
-
-// Function to display export view (now triggers modal)
-function displayExport(typographyMap) {
-  const cssVariables = generateCSSVariables(typographyMap);
-  createExportModal(cssVariables);
-}
-
-// Function to display typography items with standard CSS
-function displayTypography(typographyMap) {
-  const content = document.getElementById('typography-content');
-  const elementTypeSelector = document.getElementById('element-type');
-
-  content.innerHTML = '';
-  content.className = 'typography-grid-container'; // Use standard CSS class for grid
-
-  const selectedType = elementTypeSelector ? elementTypeSelector.value : 'all';
-  let itemsDisplayed = 0;
-
-  Array.from(typographyMap.entries()).forEach(([key, data]) => {
-    const { element, styles, count } = data;
-    const elementType = element?.tagName?.toLowerCase() || element?.type || 'text';
-
-    // More detailed filtering logic that handles specific heading types
-    let shouldDisplay = false;
-    if (selectedType === 'all') {
-      shouldDisplay = true;
-    } else if (selectedType === 'heading') {
-      // Show all heading elements (h1-h6)
-      shouldDisplay = elementType.match(/^h[1-6]$/);
-    } else if (selectedType.match(/^h[1-6]$/)) {
-      // For specific heading tags (h1, h2, etc.), check exact match
-      shouldDisplay = (elementType === selectedType);
-    } else if (selectedType === 'link') {
-      shouldDisplay = (elementType === 'a');
-    } else if (selectedType === 'body') {
-      // Exclude headings, links, and other non-content elements
-      const nonBodyElements = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'a', 'button', 'input', 
-                               'textarea', 'select', 'option', 'label', 'img', 'svg', 
-                               'br', 'hr', 'script', 'style', 'iframe'];
-      shouldDisplay = !nonBodyElements.includes(elementType);
-    }
-
-    if (shouldDisplay) {
-      if (element && styles) {
-        content.appendChild(createTypographyItem(element, styles, count));
-        itemsDisplayed++;
-      } else {
-        console.warn(`Skipping item with key ${key} due to missing element or styles.`);
-      }
+  // Update category selector options
+  Array.from(categorySelect.options).forEach(option => {
+    const value = option.value;
+    if (value === 'all') return; // Don't disable 'All Categories' option
+    
+    const hasValues = categoryCount.has(value) && categoryCount.get(value) > 0;
+    option.disabled = !hasValues;
+    
+    // If current selection is disabled, switch to 'all'
+    if (value === category && !hasValues) {
+      categorySelect.value = 'all';
+      category = 'all';
     }
   });
-
-  if (itemsDisplayed === 0) {
-    content.innerHTML = `
-      <div class="empty-state-message">
-        <p>No typography styles match the filter "${selectedType}".</p>
+  
+  const filteredFonts = fonts.filter(font => {
+    // Filter by weight
+    if (weight !== 'all') {
+      const fontWeight = weightName[font.weights[0]]?.toLowerCase() || 'regular';
+      if (fontWeight !== weight.toLowerCase()) return false;
+    }
+    
+    // Filter by category
+    if (category !== 'all') {
+      const fontCategory = getFontCategory(font);
+      if (fontCategory !== category) return false;
+    }
+    
+    return true;
+  });
+  
+  // Sort fonts alphabetically
+  filteredFonts.sort((a, b) => a.family.localeCompare(b.family));
+  
+  // Display fonts
+  filteredFonts.forEach(font => {
+    const card = createFontCard(font);
+    grid.appendChild(card);
+  });
+  
+  // Show empty state if no fonts found
+  if (filteredFonts.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <p>No fonts found matching the selected criteria</p>
+        <p class="empty-state-subtitle">Try adjusting your filters</p>
       </div>
     `;
-    content.className = 'typography-empty-container';
   }
-}
+};
 
-// Main function to initialize the typography page
-document.addEventListener('DOMContentLoaded', () => {
-  const content = document.getElementById('typography-content');
-  const exportButton = document.getElementById('export-button');
-  const elementTypeSelector = document.getElementById('element-type');
-  let typographyMap = null; // Store the map for reuse
-
-  // Add extra declarations for specific heading counts
-  function updateDisplay() {
-    if (typographyMap) {
-      displayTypography(typographyMap);
-    }
+// Function to determine font category based on font family and usage
+const getFontCategory = (font) => {
+  const family = font.family.toLowerCase();
+  
+  // Common system fonts
+  const systemFonts = [
+    'system-ui', '-apple-system', 'segoe ui', 'roboto', 'helvetica neue', 
+    'arial', 'noto sans', 'liberation sans', 'sans-serif'
+  ];
+  if (systemFonts.includes(family)) {
+    return 'system';
   }
 
-  // Show loading state with standard CSS skeletons
-  const skeletonCardHtml = `
-    <div class="skeleton-card">
-      <div class="skeleton skeleton-preview"></div>
-      <div class="skeleton-details">
-        <div class="skeleton skeleton-line" style="width: 50%;"></div>
-        <div class="skeleton skeleton-line" style="width: 33%;"></div>
-        <div class="skeleton skeleton-line" style="width: 75%;"></div>
-        <div class="skeleton skeleton-line" style="width: 50%;"></div>
-        <div class="skeleton-actions">
-            <div class="skeleton skeleton-button"></div>
-        </div>
-      </div>
-    </div>
-  `;
-  content.innerHTML = `
-    <div class="typography-grid-container is-loading">
-      ${Array(6).fill(skeletonCardHtml).join('')}
-    </div>
-  `;
-  content.className = 'typography-grid-container is-loading'; // Set loading class
+  // Display fonts (large, decorative headings)
+  if (family.includes('display') || 
+      family.includes('poster') || 
+      family.includes('banner') || 
+      family.includes('showcase')) {
+    return 'display';
+  }
 
-  // Disable controls initially
-  if (elementTypeSelector) elementTypeSelector.disabled = true;
-  if (exportButton) exportButton.disabled = true;
+  // Heading fonts (optimized for titles and headers)
+  if (family.includes('heading') || 
+      family.includes('title') || 
+      ['inter', 'montserrat', 'raleway', 'oswald'].includes(family)) {
+    return 'heading';
+  }
 
-  // Get the current active tab
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (!tabs || tabs.length === 0 || !tabs[0]?.id) {
-       content.innerHTML = `<div class="error-message">Error: Could not find active tab.</div>`;
-       content.className = 'typography-error-container'; // Remove grid if error
-      return; // Keep controls disabled
-    }
-    const currentTab = tabs[0];
+  // Body fonts (optimized for readability)
+  if (family.includes('text') || 
+      family.includes('body') || 
+      family.includes('book') || 
+      ['open sans', 'lato', 'nunito', 'roboto'].includes(family)) {
+    return 'body';
+  }
 
-    // Send message to content script
-    chrome.tabs.sendMessage(currentTab.id, { action: 'getTypography' }, (response) => {
-      // Remove loading class regardless of outcome
-      content.classList.remove('is-loading');
+  // Sans-serif fonts
+  if (family.includes('sans') || 
+      ['arial', 'helvetica', 'verdana', 'tahoma'].includes(family)) {
+    return 'sans-serif';
+  }
 
-      if (chrome.runtime.lastError) {
-        content.innerHTML = `<div class="error-message">Error: ${chrome.runtime.lastError.message || 'Could not connect to page'}.<br>Please refresh the target page and try again.</div>`;
-        content.className = 'typography-error-container'; // Remove grid if error
-        return; // Keep controls disabled
-      }
+  // Serif fonts
+  if (family.includes('serif') || 
+      ['georgia', 'times', 'garamond', 'baskerville'].includes(family) ||
+      family.includes('roman')) {
+    return 'serif';
+  }
 
-      if (!response || !response.typography || Object.keys(response.typography).length === 0) {
-        content.innerHTML = `<div class="empty-state-message">No typography styles found on this page.</div>`;
-        content.className = 'typography-empty-container'; // Remove grid if empty
-        return; // Keep controls disabled
-      }
+  // Monospace fonts
+  if (family.includes('mono') || 
+      family.includes('code') || 
+      ['consolas', 'courier', 'menlo', 'monaco', 'fira code'].includes(family)) {
+    return 'monospace';
+  }
 
-      typographyMap = new Map(Object.entries(response.typography));
+  // Handwriting and script fonts
+  if (family.includes('script') || 
+      family.includes('hand') || 
+      family.includes('writing') || 
+      family.includes('cursive') ||
+      ['pacifico', 'dancing script', 'great vibes'].includes(family)) {
+    return 'handwriting';
+  }
 
-      // Count element types with more specific heading counts
-      let headingCount = 0;
-      let h1Count = 0;
-      let h2Count = 0; 
-      let h3Count = 0;
-      let h4Count = 0;
-      let h5Count = 0;
-      let h6Count = 0;
-      let linkCount = 0;
-      let bodyCount = 0;
+  // Decorative fonts
+  if (family.includes('decorative') || 
+      family.includes('ornamental') || 
+      family.includes('comic') || 
+      family.includes('graffiti') || 
+      family.includes('brush') ||
+      family.includes('fancy')) {
+    return 'decorative';
+  }
 
-      typographyMap.forEach(data => {
-        const elementType = data.element?.tagName?.toLowerCase() || data.element?.type || 'text';
+  // Default to sans-serif if no specific category is matched
+  return 'sans-serif';
+};
+
+// Weight name mapping
+const weightName = {
+  '100': 'Thin',
+  '200': 'Extra Light',
+  '300': 'Light',
+  '400': 'Regular',
+  '500': 'Medium',
+  '600': 'Semi Bold',
+  '700': 'Bold',
+  '800': 'Extra Bold',
+  '900': 'Black'
+};
+
+// Function to scan webpage stylesheets
+const scanWebpageStylesheets = async () => {
+  console.time('stylesheetScan');
+  const results = {
+    stylesheets: [],
+    fonts: new Set(),
+    errors: []
+  };
+
+  try {
+    // Get all stylesheet links
+    const stylesheetLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'));
+    const styleElements = Array.from(document.querySelectorAll('style'));
+
+    // Process external stylesheets
+    for (const link of stylesheetLinks) {
+      try {
+        const href = link.href;
+        const sheet = link.sheet;
         
-        // Count more specific element types
-        if (elementType.match(/^h[1-6]$/)) {
-          headingCount++;
-          
-          // Count each heading type separately
-          if (elementType === 'h1') h1Count++;
-          else if (elementType === 'h2') h2Count++;
-          else if (elementType === 'h3') h3Count++;
-          else if (elementType === 'h4') h4Count++;
-          else if (elementType === 'h5') h5Count++;
-          else if (elementType === 'h6') h6Count++;
-        } else if (elementType === 'a') {
-          linkCount++;
-        } else {
-          // Count as body text if not a heading, link, or other non-content element
-          const nonBodyElements = ['button', 'input', 'textarea', 'select', 'option', 
-                                  'label', 'img', 'svg', 'br', 'hr', 'script', 'style', 'iframe'];
-          if (!nonBodyElements.includes(elementType)) {
-            bodyCount++;
-          }
+        if (!sheet) {
+          results.errors.push(`Could not access stylesheet: ${href}`);
+          continue;
         }
-      });
 
-      if (elementTypeSelector) {
-        elementTypeSelector.disabled = false;
-        
-        // Get all options and update them
-        const allOption = elementTypeSelector.querySelector('option[value="all"]');
-        const headingOption = elementTypeSelector.querySelector('option[value="heading"]');
-        const h1Option = elementTypeSelector.querySelector('option[value="h1"]');
-        const h2Option = elementTypeSelector.querySelector('option[value="h2"]');
-        const h3Option = elementTypeSelector.querySelector('option[value="h3"]');
-        const h4Option = elementTypeSelector.querySelector('option[value="h4"]');
-        const h5Option = elementTypeSelector.querySelector('option[value="h5"]');
-        const h6Option = elementTypeSelector.querySelector('option[value="h6"]');
-        const bodyOption = elementTypeSelector.querySelector('option[value="body"]');
-        const linkOption = elementTypeSelector.querySelector('option[value="link"]');
+        const stylesheetInfo = {
+          type: 'external',
+          url: href,
+          fontFamilies: new Set(),
+          rules: 0
+        };
 
-        // Update counts in option labels (optional)
-        if (headingOption && headingCount > 0) {
-          headingOption.textContent = `Headings (${headingCount})`;
-        }
-        
-        // Disable options with no content
-        if (headingOption) headingOption.disabled = headingCount === 0;
-        if (h1Option) h1Option.disabled = h1Count === 0;
-        if (h2Option) h2Option.disabled = h2Count === 0;
-        if (h3Option) h3Option.disabled = h3Count === 0;
-        if (h4Option) h4Option.disabled = h4Count === 0;
-        if (h5Option) h5Option.disabled = h5Count === 0;
-        if (h6Option) h6Option.disabled = h6Count === 0;
-        if (bodyOption) bodyOption.disabled = bodyCount === 0;
-        if (linkOption) linkOption.disabled = linkCount === 0;
+        try {
+          const rules = Array.from(sheet.cssRules || []);
+          stylesheetInfo.rules = rules.length;
 
-        // Reset selection to 'all' if current selection is disabled
-        const selectedOption = elementTypeSelector.options[elementTypeSelector.selectedIndex];
-        if (selectedOption && selectedOption.disabled && selectedOption.value !== 'all') {
-          elementTypeSelector.value = 'all';
-        }
-        
-        // Set up the change event listener
-        elementTypeSelector.removeEventListener('change', updateDisplay);
-        elementTypeSelector.addEventListener('change', updateDisplay);
-      }
-
-      // --- Enable Export Button ---
-      if (exportButton) {
-         exportButton.disabled = false;
-         // Use cloning to ensure only one listener is attached
-         const currentListener = exportButton.__clickHandler; // Check if we stored a ref before
-         if (currentListener) {
-             exportButton.removeEventListener('click', currentListener);
-         }
-         const newClickHandler = () => {
-            if (typographyMap) {
-             displayExport(typographyMap); // Trigger modal display
+          rules.forEach(rule => {
+            if (rule instanceof CSSFontFaceRule) {
+              stylesheetInfo.fontFamilies.add(rule.style.fontFamily.replace(/['"]/g, '').trim());
+            } else if (rule.style?.fontFamily) {
+              rule.style.fontFamily.split(',').forEach(family => {
+                const normalizedFamily = family.replace(/['"]/g, '').trim();
+                if (normalizedFamily && normalizedFamily.toLowerCase() !== 'inherit') {
+                  stylesheetInfo.fontFamilies.add(normalizedFamily);
+                  results.fonts.add(normalizedFamily);
+                }
+              });
             }
-         };
-         exportButton.addEventListener('click', newClickHandler);
-         exportButton.__clickHandler = newClickHandler; // Store ref for potential removal
+          });
+        } catch (e) {
+          stylesheetInfo.error = `Cross-origin stylesheet: ${href}`;
+        }
+
+        stylesheetInfo.fontFamilies = Array.from(stylesheetInfo.fontFamilies);
+        results.stylesheets.push(stylesheetInfo);
+      } catch (e) {
+        results.errors.push(`Error processing stylesheet: ${link.href}`);
       }
+    }
+
+    // Process inline styles
+    styleElements.forEach((style, index) => {
+      try {
+        const sheet = style.sheet;
+        const stylesheetInfo = {
+          type: 'inline',
+          index: index,
+          fontFamilies: new Set(),
+          rules: 0
+        };
+
+        const rules = Array.from(sheet.cssRules || []);
+        stylesheetInfo.rules = rules.length;
+
+        rules.forEach(rule => {
+          if (rule instanceof CSSFontFaceRule) {
+            stylesheetInfo.fontFamilies.add(rule.style.fontFamily.replace(/['"]/g, '').trim());
+          } else if (rule.style?.fontFamily) {
+            rule.style.fontFamily.split(',').forEach(family => {
+              const normalizedFamily = family.replace(/['"]/g, '').trim();
+              if (normalizedFamily && normalizedFamily.toLowerCase() !== 'inherit') {
+                stylesheetInfo.fontFamilies.add(normalizedFamily);
+                results.fonts.add(normalizedFamily);
+              }
+            });
+          }
+        });
+
+        stylesheetInfo.fontFamilies = Array.from(stylesheetInfo.fontFamilies);
+        results.stylesheets.push(stylesheetInfo);
+      } catch (e) {
+        results.errors.push(`Error processing inline style #${index}`);
+      }
+    });
+
+    results.fonts = Array.from(results.fonts);
+    console.timeEnd('stylesheetScan');
+    return results;
+  } catch (e) {
+    console.error('Error scanning stylesheets:', e);
+    results.errors.push('Fatal error scanning stylesheets');
+    return results;
+  }
+};
+
+// Helper function to display stylesheet results
+const displayStylesheetResults = (results) => {
+  console.group('Stylesheet Scan Results');
+  
+  // Display overall font count
+  console.log(`Total unique fonts found: ${results.fonts.length}`);
+  
+  // Display external stylesheets
+  console.group('External Stylesheets');
+  results.stylesheets
+    .filter(sheet => sheet.type === 'external')
+    .forEach(sheet => {
+      console.group(sheet.url);
+      console.log(`Rules: ${sheet.rules}`);
+      console.log(`Fonts: ${sheet.fontFamilies.join(', ')}`);
+      if (sheet.error) console.warn(`Error: ${sheet.error}`);
+      console.groupEnd();
+    });
+  console.groupEnd();
+  
+  // Display inline styles
+  console.group('Inline Styles');
+  results.stylesheets
+    .filter(sheet => sheet.type === 'inline')
+    .forEach(sheet => {
+      console.group(`Inline Style #${sheet.index}`);
+      console.log(`Rules: ${sheet.rules}`);
+      console.log(`Fonts: ${sheet.fontFamilies.join(', ')}`);
+      console.groupEnd();
+    });
+  console.groupEnd();
+  
+  // Display any errors
+  if (results.errors.length > 0) {
+    console.group('Errors');
+    results.errors.forEach(error => console.warn(error));
+    console.groupEnd();
+  }
+  
+  console.groupEnd();
+};
+
+// Initialize the page
+document.addEventListener('DOMContentLoaded', () => {
+  // Initialize tabs
+  const tabs = document.querySelectorAll('.tab-button');
+  const typographyGrid = document.getElementById('typography-grid');
+  
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
       
-      // Initial display
-      updateDisplay(); 
+      const selectedTab = tab.dataset.tab;
+      if (selectedTab === 'export') {
+        typographyGrid.style.display = 'none';
+      } else {
+        typographyGrid.style.display = 'grid';
+      }
     });
   });
+
+  // Initialize filters
+  const formatSelect = document.getElementById('font-format');
+  const weightSelect = document.getElementById('font-weight');
+  const categorySelect = document.getElementById('font-category');
+  
+  const handleFilterChange = () => {
+    const format = formatSelect.value;
+    const weight = weightSelect.value;
+    const category = categorySelect.value;
+    updateTypographyDisplay(format, weight, category);
+  };
+  
+  formatSelect.addEventListener('change', handleFilterChange);
+  weightSelect.addEventListener('change', handleFilterChange);
+  categorySelect.addEventListener('change', handleFilterChange);
+  
+  // Initial display
+  updateTypographyDisplay('css', 'all', 'all');
 }); 

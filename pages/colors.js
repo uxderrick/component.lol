@@ -308,7 +308,7 @@ async function displayGradients() {
     grid.innerHTML = `
       <div class="empty-state">
         <p>Error loading gradients</p>
-        <p class="empty-state-subtitle">Please try refreshing the page or navigating to a different webpage</p>
+        <ppogr class="empty-state-subtitle">Please try refreshing the page or navigating to a different webpage</p>
       </div>
     `;
   }

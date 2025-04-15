@@ -25,8 +25,6 @@
 }
 
 .font-preview-text {
-  font-size: 24px;
-  line-height: 1.2;
   text-align: center;
   color: var(--color-text-primary);
   margin: 0;
@@ -62,18 +60,31 @@
 .font-meta {
   font-size: 10px;
   color: var(--color-text-tertiary);
-  display: flex;
-  gap: var(--spacing-xs);
 }
 
-.font-weight {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+.font-size {
+  font-family: var(--font-mono);
 }
 
-.font-style {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+.empty-state {
+  text-align: center;
+  padding: var(--spacing-xl) var(--spacing-lg);
+  color: var(--color-text-secondary);
+  grid-column: 1 / -1;
+}
+
+.empty-state p {
+  margin-bottom: var(--spacing-sm);
+  font-size: 14px;
+}
+
+.empty-state-subtitle {
+  color: var(--color-text-tertiary);
+  font-size: 12px;
+}
+
+/* Style for disabled selector options */
+.selector option:disabled {
+  color: var(--color-text-tertiary);
+  font-style: italic;
 }
