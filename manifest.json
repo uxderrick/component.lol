@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Component.lol",
-  "version": "1.0",
+  "version": "0.0.0.1",
   "author": "Derrick Tsorme",
   "description": "Extract design tokens from any website",
   "permissions": [
@@ -15,7 +15,7 @@
   ],
   "action": {
     "default_popup": "index.html",
-    "default_icon": "images/icon.svg"
+    "default_icon": "component.png"
   },
   "content_scripts": [
     {
@@ -31,8 +31,8 @@
     }
   ],
   "icons": {
-    "16": "images/icon.svg",
-    "48": "images/icon.svg",
-    "128": "images/icon.svg"
+    "16": "component.png",
+    "48": "component.png",
+    "128": "component.png"
   }
 }

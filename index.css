@@ -288,55 +288,31 @@ body {
 
 /* Footer Link Styles */
 .footer-link {
-  text-align: center; /* Center the link */
-  margin-top: var(--spacing-xl); /* Space above the link */
-  padding-bottom: var(--spacing-sm); /* Add some padding at the very bottom */
+  display: flex;
+  justify-content: center;
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-xs) 0;
   position: sticky;
-  bottom: 16px;
+  bottom: 8px;
   left: 0;
   right: 0; 
 }
 
-/* Remove unused BMC link styles since we're using the custom button */
-/*
-.bmc-link {
-  display: inline-flex;
-  align-items: center;
-  text-decoration: none;
-  transition: opacity 0.2s ease-in-out;
-}
-
-.bmc-link img {
-  height: 40px;
-  width: auto;
-  display: block;
-}
-
-.bmc-link:hover {
-  opacity: 0.9;
-}
-*/
-
-/* Style the custom beer button */
 .footer-link img {
-  height: 40px; /* Control size */
-  border-radius: var(--radius-sm); /* Add slight rounding */
-  transition: transform 0.2s ease; /* Add hover effect */
+  max-width: 100%;
+  height: auto;
+  transition: transform 0.2s ease;
+  font-size: 12px; /* Reduced font size */
 }
 
 .footer-link a:hover img {
-  transform: translateY(-2px); /* Subtle lift on hover */
+  transform: scale(1.05);
 }
 
-/* Remove leftover .card-icon rule */
-/*
-.card-icon {
-  width: 32px; 
-  height: 32px;
-  color: #6B7280; 
-  margin-bottom: var(--spacing-sm); 
+.small-bmc-button {
+  width: 180px !important; /* Slightly reduced width to match smaller font */
+  height: auto !important;
 }
-*/
 
 /* OG Image styles */
 .og-image-container {
