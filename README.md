@@ -18,7 +18,7 @@ A modern, performant Chrome extension that helps developers extract and analyze 
 ## 🚀 Quick Start
 
 ### For Users
-1. CUrrently not available on the storre as I am not able to publish. I'll update when this becomes not the case.
+1. Currently not available on the storre as I am not able to publish. I'll update when this becomes not the case.
 <!-- 1. Visit the [Chrome Web Store](https://chrome.google.com/webstore/detail/componentlol/coming-soon) (coming soon)
 2. Click "Add to Chrome"
 3. Navigate to any website and click the Component.lol icon to analyze its design system -->
@@ -112,6 +112,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Special thanks to all contributors and testers
 
 ---
+
+## To Donate
+<div align="center">
+<a href="https://www.buymeacoffee.com/uxderrick">
+  <img src="https://img.buymeacoffee.com/button-api/?text=Buy me a beer&emoji=🍺&slug=uxderrick&button_colour=FFDD00&font_colour=000000&font_family=ui-monospace&outline_colour=000000&coffee_colour=ffffff" alt="Buy Me A Beer">
+</a>
+</div>
+
 
 <div align="center">
 Made with ❤️ by Derrick Tsorme
