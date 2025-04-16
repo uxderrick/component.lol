@@ -525,8 +525,10 @@ function analyzeButtons() {
   const buttonElements = [
     ...document.getElementsByTagName('button'),
     ...document.getElementsByTagName('input'),
+    ...document.getElementsByTagName('nav'),
+    ...document.getElementsByTagName('a'),
     ...document.querySelectorAll('[role="button"]'),
-    ...document.querySelectorAll('.btn, .button, [class*="btn-"], [class*="button-"]')
+    ...document.querySelectorAll('.btn, .button, [class*="btn-"], [class*="button-"], [class*="button"], [class*="btn"], [class*="button"], [class*="btn-"], [class*="button-"], [class*="button_"]')
   ].filter(element => {
     if (element.tagName === 'INPUT') {
       return ['button', 'submit', 'reset'].includes(element.type);
@@ -1076,20 +1078,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ gradients });
   } else if (request.action === 'getTypography') {
     try {
-      if (!request.selector) {
-        throw new Error('Selector not provided for getTypography action.');
-      }
-      const element = document.querySelector(request.selector);
-      if (!element) {
-        throw new Error(`Element not found for selector: ${request.selector}`);
-      }
-      const typography = getTypography(element);
-      console.log('Sending typography data for selector:', request.selector, typography);
+      // Call analyzeTypography directly
+      const typography = analyzeTypography(); 
+      console.log('Sending typography data:', typography);
       sendResponse({ typography });
     } catch (error) {
       console.error('Error getting typography:', error);
       sendResponse({ error: error.message });
     }
+    return true; // Keep channel open for async response if needed, although analyzeTypography is currently sync
   } else if (request.action === 'getButtons') {
     try {
       const buttons = analyzeButtons();
