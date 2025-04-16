@@ -1,30 +1,33 @@
 # Component.lol 🚀
 
-A modern, performant Chrome extension built with best practices and the latest technologies. This extension helps developers [brief description of what your extension does].
-
-![Component.lol Banner]
+A modern, performant Chrome extension that helps developers extract and analyze design tokens from any website. Component.lol scans web pages to identify and catalog colors, typography, buttons, and other UI assets, making it easier to understand and replicate design systems.
 
 ## ✨ Features
 
-- 🛠️ Built with Manifest V3
-- ⚡ Modern JavaScript/TypeScript
-- 🎨 Clean, intuitive UI with TailwindCSS
-- 🔒 Secure by design
-- ♿ Fully accessible
-- 🌐 Cross-browser compatibility
+- 🎨 Extract complete color palettes and design tokens
+- 📝 Analyze typography styles and font usage
+- 🔲 Catalog button styles and variants
+- 🖼️ Collect and organize UI assets (images, icons, SVGs)
+- 🛠️ Built with Manifest V3 for modern Chrome extensions
+- ⚡ Fast and efficient page scanning
+- 🎯 Precise component detection
+- 🔒 Secure by design with proper permissions
+- ♿ Fully accessible UI
+- 🌐 Cross-browser compatibility (Chrome, Edge, Brave)
 
 ## 🚀 Quick Start
 
 ### For Users
-1. Visit the [Chrome Web Store](link-to-store) (coming soon)
+1. CUrrently not available on the storre as I am not able to publish. I'll update when this becomes not the case.
+<!-- 1. Visit the [Chrome Web Store](https://chrome.google.com/webstore/detail/componentlol/coming-soon) (coming soon)
 2. Click "Add to Chrome"
-3. Follow the installation prompts
+3. Navigate to any website and click the Component.lol icon to analyze its design system -->
 
 ### For Developers
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/component.lol.git
+git clone https://github.com/uxderrick/component.lol.git
 
 # Install dependencies
 npm install
@@ -40,33 +43,50 @@ To load the extension in Chrome:
 
 1. Open Chrome and navigate to `chrome://extensions/`
 2. Enable "Developer mode" in the top right
-3. Click "Load unpacked" and select the `dist` folder
+3. Click "Load unpacked" and select the `component.lol` folder
 4. The extension is now ready for development!
-
-## 🛠️ Tech Stack
-
-- **Framework**: Vite + React
-- **Styling**: TailwindCSS
-- **State Management**: React Context/Hooks
-- **Build Tool**: Vite
-- **Package Manager**: npm
-- **Code Quality**: ESLint, Prettier
 
 ## 📁 Project Structure
 
 ```
 component.lol/
-├── src/               # Source files
-├── dist/              # Production build
-├── public/            # Static assets
-├── content-scripts/   # Chrome content scripts
-├── pages/            # Extension pages
-└── images/           # Extension icons and images
+├── pages/            # Extension feature pages
+│   ├── colors/       # Color analysis page
+│   ├── typography/   # Typography analysis page
+│   ├── buttons/      # Button analysis page
+│   └── assets/       # Asset management page
+├── content.js        # Content script for webpage analysis
+├── background.js     # Service worker for extension
+├── manifest.json     # Extension manifest
+├── scripts.js        # Main extension logic
+├── shared.css        # Common styles
+├── index.html        # Extension popup
+├── index.css         # Popup styles
+├── style.css         # Additional styles
+└── images/          # Extension icons and assets
 ```
 
 ## 🧩 Extension Features
 
-[Detailed description of your extension's main features and how to use them]
+### Color Analysis
+- Extracts all colors used on a webpage
+- Groups colors by usage (text, background, borders)
+- Exports color palettes in various formats
+
+### Typography Scanner
+- Detects font families and weights
+- Analyzes text styles and hierarchies
+- Catalogs font sizes and line heights
+
+### Button Collector
+- Captures button styles
+- Extracts padding and spacing values
+- Identifies button hierarchies
+
+### Asset Manager
+- Collects images, videos, icons, and SVGs
+- Organizes assets by type and size
+- Provides easy download options
 
 ## 🤝 Contributing
 
@@ -82,18 +102,17 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 👥 Authors
+## 👥 Author
 
-- **Your Name** - *Initial work* - [GitHub Profile](https://github.com/yourusername)
+- **Derrick Tsorme** - *Initial work* - [GitHub](https://github.com/uxderrick)
 
 ## 🙏 Acknowledgments
 
-- List any contributors
-- Inspiration
-- References
+- Thanks to the Chrome Extensions community for inspiration and best practices
+- Special thanks to all contributors and testers
 
 ---
 
 <div align="center">
-Made with ❤️ by [Your Name/Team]
+Made with ❤️ by Derrick Tsorme
 </div>
