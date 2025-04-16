@@ -14,12 +14,28 @@ function getMetaData() {
   const title = document.title;
   const metaDescription = document.querySelector('meta[name="description"]')?.content || '';
   
+  // Get OG image URL from meta tags with more fallbacks
+  let ogImage = document.querySelector('meta[property="og:image"]')?.content || 
+                  document.querySelector('meta[name="og:image"]')?.content ||
+                  document.querySelector('meta[property="twitter:image"]')?.content ||
+                  document.querySelector('meta[property="og:image:url"]')?.content ||
+                  document.querySelector('meta[name="twitter:image"]')?.content ||
+                  document.querySelector('meta[itemprop="image"]')?.content ||
+                  document.querySelector('link[rel="image_src"]')?.href || '';
+  
+  // Resolve to absolute URL if found
+  if (ogImage) {
+    ogImage = getAbsoluteURL(ogImage); // Use the helper function
+  }
+
   console.log('Found title:', title);
   console.log('Found description:', metaDescription);
+  console.log('Found OG image (absolute):', ogImage);
   
   return {
     title,
-    description: metaDescription
+    description: metaDescription,
+    ogImage
   };
 }
 

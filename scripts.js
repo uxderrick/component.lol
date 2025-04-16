@@ -99,6 +99,54 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('website-title').textContent = metaData.title || 'No title available';
     document.getElementById('website-description').textContent = metaData.description || 'No description available';
 
+    // Set the OG image if available
+    const ogImageElement = document.getElementById('og-image');
+    const ogContainer = document.querySelector('.og-image-container');
+
+    if (ogImageElement && ogContainer) {
+      if (metaData.ogImage) {
+        console.log("OG image found, attempting to load src:", metaData.ogImage);
+        // Make container visible to show skeleton loader
+        ogContainer.style.display = 'block'; 
+
+        ogImageElement.src = metaData.ogImage;
+        ogImageElement.alt = metaData.title || 'Website Image';
+        
+        // Handle successful load
+        ogImageElement.onload = function() {
+          console.log("OG image loaded successfully");
+          // Remove skeleton styles from container
+          ogContainer.classList.remove('skeleton'); 
+          ogContainer.style.background = 'none'; 
+          ogContainer.style.animation = 'none'; 
+          // NOW make the actual image visible
+          ogImageElement.style.display = 'block'; 
+        };
+        
+        // Handle image load error
+        ogImageElement.onerror = function() {
+          console.log("OG image failed to load, hiding container");
+          // Hide container and ensure image is hidden
+          ogContainer.style.display = 'none';
+          ogImageElement.style.display = 'none';
+          ogContainer.classList.remove('skeleton');
+          ogContainer.style.background = 'none';
+          ogContainer.style.animation = 'none';
+        };
+
+      } else {
+        console.log("No OG image found in metadata, ensuring container is hidden");
+        ogContainer.style.display = 'none';
+        ogImageElement.style.display = 'none'; // Ensure image is hidden too
+        // Ensure skeleton styles are removed 
+        ogContainer.classList.remove('skeleton');
+        ogContainer.style.background = 'none';
+        ogContainer.style.animation = 'none';
+      }
+    } else {
+      console.log("OG image element or container not found in DOM");
+    }
+
   } catch (error) {
     console.error('Error:', error);
     document.getElementById('website-title').textContent = 'Error';

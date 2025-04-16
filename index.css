@@ -291,6 +291,10 @@ body {
   text-align: center; /* Center the link */
   margin-top: var(--spacing-xl); /* Space above the link */
   padding-bottom: var(--spacing-sm); /* Add some padding at the very bottom */
+  position: sticky;
+  bottom: 16px;
+  left: 0;
+  right: 0; 
 }
 
 /* Remove unused BMC link styles since we're using the custom button */
@@ -332,4 +336,36 @@ body {
   color: #6B7280; 
   margin-bottom: var(--spacing-sm); 
 }
-*/ 
+*/
+
+/* OG Image styles */
+.og-image-container {
+  margin-bottom: var(--spacing-sm);
+  display: none; /* Initially hidden */
+  max-width: 100%;
+  overflow: hidden;
+  /* Add skeleton class by default */
+  /* It will only show when display is set to block */
+  composes: skeleton from "./shared.css"; /* Using composes if module system allows, otherwise just add class */
+  /* Or manually add the styles if composes isn't applicable: */
+  background: linear-gradient(90deg, var(--color-hover) 25%, var(--color-surface) 37%, var(--color-hover) 63%);
+  background-size: 400% 100%;
+  animation: skeleton-loading 1.4s ease infinite;
+  /* Ensure fixed size for loader */
+  width: 100px; 
+  height: 60px;
+  border-radius: var(--radius-sm);
+}
+
+.og-image {
+  display: block;
+  /* Hide image initially, show only on load */
+  display: none; 
+  width: 100px; /* Small width */
+  height: 60px; /* Control height for rectangular shape */
+  object-fit: cover; /* Ensure image fills without distortion */
+  /* Remove individual border/shadow since container has them */
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+  border: none;
+} 
