@@ -1,11 +1,24 @@
+/* Apply styles from image */
+body {
+  font-family: var(--font-sans); 
+  background: var(--color-background); 
+  color: var(--color-text-primary);
+  padding: var(--spacing-lg); /* Restore body padding */
+  width: var(--popup-width);
+  min-height: var(--popup-min-height); 
+}
+
 /* Header specific styles */
 .header {
-  position: sticky;
+  /* Hide header as it's not in the target image */
+  display: none; 
+  /* Original styles commented out below if needed later */
+  /* position: sticky; 
   top: 0;
   z-index: 100;
-  background: var(--color-background);
+  background: var(--color-background); 
   padding: var(--spacing-md) 0;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border); */
 }
 
 .logo {
@@ -59,26 +72,37 @@
 
 /* Profile section */
 .profile-section {
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: var(--spacing-xl); /* Restore margin */
+  background-color: transparent; /* Remove dark background */
+  padding: 0; /* Remove padding */
+  min-height: auto; /* Remove min-height */
+  /* display: flex; */ /* Remove flex */
+  /* flex-direction: column; */
+  /* justify-content: center; */
 }
 
 .profile-title {
+  /* Revert text color */
+  color: var(--color-text-primary);
+  /* Restore original styles if changed */
   font-size: 16px;
   font-weight: 500;
   margin-top: var(--spacing-lg);
-  color: #000;
-  line-height: 1.625rem;
+  line-height: 1.625rem; 
   letter-spacing: -0.011rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-bottom: var(--spacing-xs); 
 }
 
 .profile-description {
-  font-size: 14px;
+  /* Revert text color */
   color: #8E8E93;
+  /* Restore original styles if changed */
+  font-size: 14px;
   font-weight: 400;
   line-height: 1.5rem;
   letter-spacing: -0.00525rem;
@@ -87,130 +111,225 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-bottom: var(--spacing-sm); 
+}
+
+/* Style for the URL Badge */
+.profile-url-badge {
+  display: inline-block; /* Behave like a badge */
+  max-width: 100%; /* Crucial for ellipsis on inline-block */
+  background-color: var(--color-hover); /* Light background */
+  color: var(--color-text-secondary); /* Secondary text color */
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  font-size: 12px; /* Smaller font */
+  font-weight: 500;
+  text-decoration: none;
+  /* margin-top: var(--spacing-sm); */
+
+  /* Ellipsis styles */
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+
+  transition: background-color 0.2s, border-color 0.2s; /* Smooth hover */
+}
+
+.profile-url-badge:hover {
+  background-color: var(--color-surface); /* Slightly change bg */
+  border-color: var(--color-text-tertiary); /* Slightly change border */
+  text-decoration: none; /* Keep no underline */
 }
 
 /* Components grid */
 .components-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 4px;
+  gap: var(--spacing-md); /* Use medium spacing */
+  padding: 0; 
 }
 
+/* Apply light card style from the new image */
 .component-card {
   position: relative;
-  /* background: #2C2C2E; Base background might be overridden by variants */
-  color: white;
+  /* Light background */
+  background-color: var(--color-surface);
+  /* Add subtle diagonal pattern */
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(0, 0, 0, 0.03),
+    rgba(0, 0, 0, 0.03) 1px,
+    transparent 1px,
+    transparent 8px
+  );
+  /* Default dark text, specific elements will override */
+  color: var(--color-text-primary); 
+  /* Add mask to fade pattern towards bottom */
+  -webkit-mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
   border-radius: var(--radius-md);
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid var(--color-border);
-  padding: 12px;
-  height: 150px;
-  text-align: left;
+  box-shadow: var(--shadow-sm); /* Subtle shadow */
+  transition: all 0.2s ease-in-out; /* Smoother transition */
+  border: 1px solid var(--color-border); /* Subtle border */
+  padding: var(--spacing-md);
+  height: 150px; 
+  text-align: left; 
 }
 
 .component-card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-md); /* Slightly larger shadow on hover */
+  transform: translateY(-2px); /* Subtle lift effect */
 }
 
 .component-card:focus {
   outline: none;
-  box-shadow: 0 0 0 2px var(--color-text-primary);
+  box-shadow: 0 0 0 2px var(--color-text-secondary); /* Adjusted focus ring */
+  transform: none; 
 }
 
 .card-content {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--spacing-sm);
+  align-items: flex-start; 
+  justify-content: space-between; 
+  gap: var(--spacing-sm); 
   z-index: 1;
   height: 100%;
 }
 
-.card-icon {
-  width: 40px;
+/* Remove Baemin icon styles */
+/* .icon-background { ... } */
+/* .card-icon { ... } */
+
+/* Styles for new preview elements */
+.card-preview-palette {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+  width: 40px; /* Adjust size */
+  height: 40px;
+  margin-bottom: var(--spacing-md);
+}
+
+.card-preview-palette > div {
+  border-radius: 4px;
+}
+
+.card-preview-text {
+  font-size: 28px; 
+  font-weight: 600;
+  color: #A9A9A9; /* Muted grey color */
+  width: 40px; 
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-sm);
-  padding: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
 }
 
-.card-icon svg {
-  width: 24px;
-  height: 24px;
-  color: currentColor;
+.card-preview-icon {
+  width: 40px; 
+  height: 40px;
+  color: #A9A9A9; /* Muted grey color */
+  margin-bottom: var(--spacing-md);
 }
 
 .card-title {
-  font-weight: 400;
+  font-weight: 500; /* Slightly bolder */
   font-size: 14px;
-  color: currentColor;
-  text-align: left;
+  color: var(--color-text-primary); /* Faded/light grey color */
+  text-align: left; 
+  width: auto; 
+  margin-bottom: var(--spacing-md);
 }
 
-/* Re-introduce Card variants with patterns */
-
-.colors-card {
-  background: #000 repeating-linear-gradient(
-    45deg,
-    rgba(255, 255, 255, 0.1),
-    rgba(255, 255, 255, 0.1) 1px,
-    transparent 1px,
-    transparent 10px
-  );
-}
-
-.typography-card {
-  background-color: #000;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px);
-  background-size: 10px 10px;
-}
-
-.buttons-card {
-   background: #000 repeating-radial-gradient(
-     circle,
-     rgba(255, 255, 255, 0.1),
-     rgba(255, 255, 255, 0.1) 1px,
-     transparent 1px,
-     transparent 10px
-   );
-}
-
+/* Ensure base card style applies */
+.colors-card,
+.typography-card,
+.buttons-card,
 .assets-card {
-  background: #000 repeating-linear-gradient(
-    -45deg,
-    rgba(255, 255, 255, 0.1),
-    rgba(255, 255, 255, 0.1) 1px,
-    transparent 1px,
-    transparent 10px
-  );
+  /* Remove specific overrides if any */
+  /* background-image: none; */
+  /* Allow base card background to apply */
 }
 
-/* Card variants */
+/* Remove old icon styles */
+/* .card-icon { ... } */
+/* .card-icon svg { ... } */
+
+/* Remove the circular icon style */
 /*
-.colors-card {
-  background: linear-gradient(135deg, #FF6B6B, #4ECDC4);
-  color: white;
+.card-icon-circle {
+  width: 36px; 
+  height: 36px;
+  background-color: #E5E7EB; 
+  border-radius: 50%; 
+  margin-bottom: var(--spacing-sm); 
+}
+*/
+
+/* Add styles for the SVG icons */
+.card-icon {
+  width: 32px; /* Adjust size as needed */
+  height: 32px;
+  color: #6B7280; /* Use a slightly muted color */
+  margin-bottom: var(--spacing-sm); /* Space below icon */
 }
 
-.typography-card {
-  background: linear-gradient(135deg, #A8E6CF, #DCEDC1);
-  color: var(--color-text-primary);
+/* Remove commented out old variants */
+/*
+.colors-card { ... }
+.typography-card { ... }
+.buttons-card { ... }
+.assets-card { ... }
+*/
+
+/* Footer Link Styles */
+.footer-link {
+  text-align: center; /* Center the link */
+  margin-top: var(--spacing-xl); /* Space above the link */
+  padding-bottom: var(--spacing-sm); /* Add some padding at the very bottom */
 }
 
-.buttons-card {
-  background: linear-gradient(135deg, #FFD93D, #FF6B6B);
-  color: var(--color-text-primary);
+/* Remove unused BMC link styles since we're using the custom button */
+/*
+.bmc-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  transition: opacity 0.2s ease-in-out;
 }
 
-.assets-card {
-  background: linear-gradient(135deg, #6C5CE7, #A8E6CF);
-  color: white;
+.bmc-link img {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+
+.bmc-link:hover {
+  opacity: 0.9;
+}
+*/
+
+/* Style the custom beer button */
+.footer-link img {
+  height: 40px; /* Control size */
+  border-radius: var(--radius-sm); /* Add slight rounding */
+  transition: transform 0.2s ease; /* Add hover effect */
+}
+
+.footer-link a:hover img {
+  transform: translateY(-2px); /* Subtle lift on hover */
+}
+
+/* Remove leftover .card-icon rule */
+/*
+.card-icon {
+  width: 32px; 
+  height: 32px;
+  color: #6B7280; 
+  margin-bottom: var(--spacing-sm); 
 }
 */ 

@@ -68,6 +68,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       throw new Error('No active tab found');
     }
 
+    // Update the profile link with the current tab's URL
+    const profileLinkBadge = document.querySelector('.profile-url-badge');
+    if (profileLinkBadge) {
+      if (tab.url && tab.url !== 'about:blank') { // Check if URL exists and is not blank
+        profileLinkBadge.href = tab.url;
+        profileLinkBadge.textContent = tab.url;
+      } else {
+        profileLinkBadge.textContent = 'Cannot get URL for this page'; // Handle cases like chrome:// pages or blank tabs
+        profileLinkBadge.removeAttribute('href'); // Remove href if URL is not valid
+        profileLinkBadge.style.pointerEvents = 'none'; // Make it non-clickable
+        profileLinkBadge.style.textDecoration = 'none';
+      }
+    } else {
+      console.error('Profile link badge element (.profile-url-badge) not found.');
+    }
+
     // Update UI to loading state
     document.getElementById('website-title').textContent = 'Loading...';
     document.getElementById('website-description').textContent = 'Getting website information...';
