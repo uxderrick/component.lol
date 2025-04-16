@@ -1,10 +1,13 @@
 // Function to format file size
 function formatFileSize(bytes) {
-  if (!bytes && bytes !== 0) return 'Unknown size';
+  // Handle null, undefined, or non-numeric input
+  if (bytes === null || bytes === undefined || isNaN(bytes)) return 'Unknown size'; 
   if (bytes === 0) return '0 B';
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
+  // Handle potential calculation errors or very large numbers
+  if (i < 0 || i >= sizes.length) return 'Unknown size'; 
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
@@ -202,8 +205,8 @@ function createAssetCard(asset) {
     </button>
   `;
 
-  // Format dimensions string
-  const dimensionsStr = asset.dimensions ? 
+  // Format dimensions string - Check if dimensions exist
+  const dimensionsStr = (asset.dimensions && asset.dimensions.width && asset.dimensions.height) ? 
     `<div class="asset-dimensions">${asset.dimensions.width}×${asset.dimensions.height}</div>` : '';
 
   // Add icon indicator class if it's an icon
@@ -215,16 +218,18 @@ function createAssetCard(asset) {
   // Handle preview content based on asset type
   let previewContent = '';
   if (asset.type === 'svg') {
-    try {
-      const blob = new Blob([asset.content], { type: 'image/svg+xml' });
-      const blobUrl = URL.createObjectURL(blob);
-      previewContent = `<img src="${blobUrl}" alt="${asset.name}" style="width: 100%; height: 100%; object-fit: contain; cursor: zoom-in;" loading="lazy" onload="URL.revokeObjectURL(this.src)" />`;
-    } catch (error) {
-      console.error('Error creating SVG preview:', error);
+    // Always use direct innerHTML injection for SVG previews, similar to lightbox
+    // Removed the try/catch block that attempted Blob URL and <img> tag
+    if (asset.content) {
       const sanitizedContent = asset.content
         .replace(/script/gi, 'scrpt')
         .replace(/on\w+=/gi, 'data-on=');
       previewContent = `<div class="svg-container" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; cursor: zoom-in;">${sanitizedContent}</div>`;
+    } else {
+      // Fallback if SVG has no inline content (e.g., only a URL)
+      // Use an img tag in this case, assuming it's a simple SVG file URL
+      previewContent = `<img src="${asset.url}" alt="${asset.name}" style="width: 100%; height: 100%; object-fit: contain; cursor: zoom-in;" loading="lazy" />`;
+      console.warn('SVG asset has no inline content, attempting preview via URL:', asset.name);
     }
   } else if (isIcon) {
     // For icons, create a blob URL and ensure proper sizing
@@ -400,6 +405,10 @@ function createAssetCard(asset) {
           lightboxMedia.innerHTML = `<img src="${asset.url}" alt="${asset.name}" />`;
         }
         
+        // Ensure lightbox is appended if it wasn't before
+        if (!document.getElementById('asset-lightbox')) {
+             document.body.appendChild(lightbox);
+        }
         lightbox.classList.add('active');
       }
     });

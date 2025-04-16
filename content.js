@@ -596,210 +596,463 @@ function getAbsoluteURL(url) {
 
 // Function to get file size
 async function getFileSize(url) {
+  if (!url) return null; // Added check for null/undefined URL
   try {
-    const response = await fetch(url, { method: 'HEAD' });
+    // Use 'no-cors' mode for HEAD requests to avoid immediate CORS failure, 
+    // though it might limit header access on some servers.
+    const response = await fetch(url, { method: 'HEAD', mode: 'no-cors' }); 
+    
+    // If the request was opaque (due to no-cors), we can't access headers.
+    // Try a GET request as a fallback, but abort it quickly.
+    if (response.type === 'opaque') {
+      try {
+        const controller = new AbortController();
+        const signal = controller.signal;
+        // Abort after 500ms to avoid downloading large files just for size
+        setTimeout(() => controller.abort(), 500); 
+        
+        const getResponse = await fetch(url, { signal });
+        if (!getResponse.ok) {
+          console.warn(`Could not get size for ${url}: GET request failed with status ${getResponse.status}`);
+          return null;
+        }
+        const sizeHeader = getResponse.headers.get('content-length');
+        // IMPORTANT: We consumed the response body partially here, need to cancel it.
+        if (getResponse.body) {
+           getResponse.body.cancel();
+        }
+        return sizeHeader ? parseInt(sizeHeader) : null; // Return null if header missing
+      } catch (getError) {
+        if (getError.name === 'AbortError') {
+          console.warn(`HEAD request for ${url} was opaque, and GET request timed out or failed before getting size.`);
+        } else {
+          console.warn(`Fallback GET request for size failed for ${url}:`, getError);
+        }
+        return null; // Return null on fallback failure
+      }
+    }
+
+    // For non-opaque responses
+    if (!response.ok) {
+       console.warn(`Could not get size for ${url}: HEAD request failed with status ${response.status}`);
+       return null; // Return null on non-OK status
+    }
+
     const size = response.headers.get('content-length');
-    return size ? parseInt(size) : 0;
+    return size ? parseInt(size) : null; // Return null if header missing
   } catch (error) {
+    // Catch fetch errors (network, CORS on redirect if 'no-cors' wasn't enough, etc.)
     console.warn(`Could not get size for ${url}:`, error);
-    return 0;
+    return null; // Return null on error
   }
 }
 
 // Function to check if an element is likely an icon
 function isLikelyIcon(element, url = '', dimensions = {}) {
-  const { width, height } = dimensions;
+  // Ensure dimensions is an object before destructuring
+  const safeDimensions = dimensions || {}; 
+  const { width, height } = safeDimensions;
   
   // Check dimensions (icons are typically small and square)
   const isSmallAndSquare = width && height && 
+    width > 0 && height > 0 && // Added check for > 0
     width <= 64 && height <= 64 && 
-    Math.abs(width - height) <= 4;
+    Math.abs(width - height) <= 10; // Increased tolerance slightly
 
   // Check URL patterns
-  const urlLower = url.toLowerCase();
+  const urlLower = (url || '').toLowerCase(); // Ensure url is a string
   const isIconPath = urlLower.includes('/icons/') || 
                     urlLower.includes('/icon/') ||
                     urlLower.includes('icon.') ||
                     urlLower.includes('-icon.') ||
-                    urlLower.includes('_icon.');
+                    urlLower.includes('_icon.') ||
+                    urlLower.endsWith('.ico'); // Added .ico check
 
-  // Check element context
-  const isInIconContext = element.closest('[class*="icon"]') !== null ||
+  // Check element context if element is provided
+  let isInIconContext = false;
+  if (element && typeof element.closest === 'function') { // Check if element is valid
+      isInIconContext = element.closest('[class*="icon"]') !== null ||
                         element.closest('[id*="icon"]') !== null ||
                         element.getAttribute('class')?.toLowerCase().includes('icon') ||
-                        element.getAttribute('id')?.toLowerCase().includes('icon');
-
+                        element.getAttribute('id')?.toLowerCase().includes('icon') ||
+                        element.tagName?.toLowerCase() === 'i'; // Check if it's an <i> tag
+  }
+  
+  // Consider it an icon if it's small/square OR has an icon path/context
   return isSmallAndSquare || isIconPath || isInIconContext;
 }
 
 // Function to scan for assets
 async function scanAssets() {
   const assets = new Map();
+  const processedUrls = new Set(); // Keep track of processed URLs to avoid duplicate fetches
 
-  // Scan for images
+  // Simple blocklist for known non-asset domains/patterns
+  const NON_ASSET_PATTERNS = [
+    /\.google-analytics\.com$/,
+    /\.googletagmanager\.com$/,
+    /\.googleadservices\.com$/,
+    /\.doubleclick\.net$/,
+    /\/beacon/,
+    /\/pixel/,
+    /\/analytics/,
+    /\/tracking/,
+    /\.facebook\.net$/,
+    /\.fbcdn\.net$/,
+    /connect\.facebook\.net$/,
+    /\.twitter\.com\/i\//, // Twitter analytics/pixels
+    /t\.co\//,            // Twitter short URLs (often tracking)
+    /\.adsrvr\.org$/,
+    /analytics\.twitter\.com$/
+    // Add more patterns as needed
+  ];
+
+  // Helper function to check if a URL should be skipped
+  const shouldSkipUrl = (url) => {
+    if (!url) return true;
+    try {
+      const urlObj = new URL(url);
+      const hostname = urlObj.hostname;
+      const path = urlObj.pathname;
+
+      // Skip common non-asset protocols
+      if (!['http:', 'https:', 'data:'].includes(urlObj.protocol)) {
+          return true;
+      }
+      // Skip if it matches any non-asset pattern
+      return NON_ASSET_PATTERNS.some(pattern => {
+        // If pattern ends with $ (and is a RegExp), test only hostname, otherwise test hostname + path
+        // Ensure we are dealing with a RegExp object before using toString()
+        const patternString = Object.prototype.toString.call(pattern) === '[object RegExp]' ? pattern.toString() : '';
+        if (patternString.endsWith('$/')) {
+           return pattern.test(hostname);
+        } else {
+           return pattern.test(hostname + path);
+        }
+      });
+    } catch (e) {
+      return true; // Invalid URL
+    }
+  };
+
+  // Helper function to add assets safely
+  const addAsset = (key, assetData) => {
+    // Basic check for valid asset data
+    if (!assetData.url && !assetData.content) return; 
+    // Ensure name exists
+    if (!assetData.name) {
+      if (assetData.url) {
+        assetData.name = assetData.url.split('/').pop().split('?')[0] || 'asset'; // Basic name from URL
+      } else {
+        assetData.name = `${assetData.type || 'svg'}_asset`; // Default name for content-based assets
+      }
+    }
+    // Add appropriate file extension if missing
+    if (assetData.type && assetData.name && !assetData.name.includes('.')) {
+       const ext = assetData.type === 'image' ? 'png' : assetData.type === 'background' ? 'png' : assetData.type; // Default extensions
+       if (!['icon', 'svg', 'video', 'image', 'background'].includes(ext)) {
+         // Don't add extensions for unknown types
+       } else if (ext !== 'background'){
+         assetData.name = `${assetData.name}.${ext}`;
+       }
+    }
+
+
+    assets.set(key, assetData);
+    if (assetData.url) {
+      processedUrls.add(assetData.url); // Mark URL as processed
+    }
+  };
+
+  // --- Scan Phase 1: DOM Elements (img, svg, video) ---
+
+  // Scan for images (<img> tags)
   const imageElements = document.querySelectorAll('img');
   for (const img of imageElements) {
-    const src = getAbsoluteURL(img.src);
-    if (src && !assets.has(src)) {
-      const dimensions = await getImageDimensions(src);
-      const size = await getFileSize(src);
-      const isIcon = isLikelyIcon(img, src, dimensions);
-      
-      assets.set(src, {
-        name: src.split('/').pop(),
-        type: isIcon ? 'icon' : 'image',
-        url: src,
-        size,
-        dimensions,
-        isIcon
-      });
+    // Handle potential src and srcset
+    let potentialUrls = [img.src];
+    if (img.srcset) {
+      potentialUrls = potentialUrls.concat(
+        img.srcset.split(',').map(entry => entry.trim().split(' ')[0])
+      );
     }
-  }
-
-  // Scan for background images
-  const elements = document.querySelectorAll('*');
-  for (const el of elements) {
-    const style = window.getComputedStyle(el);
-    const bgImage = style.backgroundImage;
-    if (bgImage && bgImage !== 'none') {
-      const matches = bgImage.match(/url\(['"]?([^'"\)]+)['"]?\)/g) || [];
-      for (const match of matches) {
-        const url = match.replace(/url\(['"]?([^'"\)]+)['"]?\)/, '$1');
-        const absoluteUrl = getAbsoluteURL(url);
-        if (absoluteUrl && !assets.has(absoluteUrl)) {
-          const dimensions = await getImageDimensions(absoluteUrl);
-          const size = await getFileSize(absoluteUrl);
-          const isIcon = isLikelyIcon(el, absoluteUrl, dimensions);
-          
-          assets.set(absoluteUrl, {
-            name: absoluteUrl.split('/').pop(),
-            type: isIcon ? 'icon' : 'background',
-            url: absoluteUrl,
-            size,
-            dimensions,
-            isIcon
-          });
+    
+    for (const potentialSrc of potentialUrls) {
+      const src = getAbsoluteURL(potentialSrc);
+      if (src && !processedUrls.has(src) && !src.startsWith('data:')) { // Skip data URIs for now
+        processedUrls.add(src); // Mark as processing
+        
+        // *** Add filter check here ***
+        if (shouldSkipUrl(src)) {
+          console.log('Skipping non-asset URL:', src);
+          continue; // Skip this URL
         }
+
+        const dimensions = await getImageDimensions(src);
+        const size = await getFileSize(src);
+        // Pass dimensions safely to isLikelyIcon
+        const isIcon = isLikelyIcon(img, src, dimensions || {}); 
+        
+        addAsset(src, {
+          name: src.split('/').pop().split('?')[0], // Remove query params from name
+          type: getAssetTypeFromUrl(src) || (isIcon ? 'icon' : 'image'), // Use helper for type
+          url: src,
+          size, // Can be null
+          dimensions, // Can be null
+          isIcon
+        });
+      } else if (src && src.startsWith('data:image/')) { // Handle data URIs
+         if (!assets.has(src)) { // Avoid duplicates if already added
+            const type = src.match(/^data:image\/([^;]+);/)?.[1] || 'png';
+            addAsset(src, {
+                name: `data_image.${type}`,
+                type: type,
+                url: src, // Keep data URI as URL for display/download
+                size: calculateDataUriSize(src),
+                dimensions: await getImageDimensions(src), // Try getting dimensions
+                isIcon: isLikelyIcon(img, '', await getImageDimensions(src) || {})
+            });
+         }
       }
     }
   }
 
-  // Scan for SVGs
+  // Scan for inline SVGs (<svg> tags)
   const svgElements = document.querySelectorAll('svg');
   svgElements.forEach(svg => {
-    const svgContent = svg.outerHTML;
-    const key = svgContent;
-    if (!assets.has(key)) {
-      const dimensions = {
-        width: svg.clientWidth,
-        height: svg.clientHeight
-      };
-      const blob = new Blob([svgContent], {type: 'image/svg+xml'});
-      const isIcon = isLikelyIcon(svg, '', dimensions);
+    // Ensure the SVG is potentially visible and meaningful
+    if (svg.clientWidth > 0 && svg.clientHeight > 0 && svg.outerHTML.length > 50) {
+      const svgContent = svg.outerHTML;
+      const key = `svg_${svgContent.substring(0, 100)}_${svgContent.length}`; // Create a more stable key
       
-      assets.set(key, {
-        name: 'icon.svg',
-        type: isIcon ? 'icon' : 'svg',
-        content: svgContent,
-        size: blob.size,
-        dimensions,
-        isIcon
-      });
+      if (!assets.has(key)) {
+        const dimensions = {
+          width: svg.clientWidth,
+          height: svg.clientHeight
+        };
+        const blob = new Blob([svgContent], {type: 'image/svg+xml'});
+        const isIcon = isLikelyIcon(svg, '', dimensions); // Pass dimensions
+        
+        addAsset(key, {
+          name: isIcon ? 'icon.svg' : 'vector.svg', // Better default names
+          type: 'svg', // Type is always svg for inline
+          content: svgContent,
+          size: blob.size,
+          dimensions,
+          isIcon,
+          url: null // Explicitly null for content-based assets initially
+        });
+      }
     }
   });
 
-  // Scan for video sources
+  // Scan for video sources (<video> <source> tags)
   const videoSources = document.querySelectorAll('video source');
   for (const source of videoSources) {
     const src = getAbsoluteURL(source.src);
-    if (src && !assets.has(src)) {
+    if (src && !processedUrls.has(src) && !src.startsWith('data:')) {
+      processedUrls.add(src); // Mark as processing
       const size = await getFileSize(src);
-      assets.set(src, {
-        name: src.split('/').pop(),
-        type: 'video',
+      addAsset(src, {
+        name: src.split('/').pop().split('?')[0],
+        type: getAssetTypeFromUrl(src) || 'video', // Use helper
         url: src,
-        size
+        size, // Can be null
+        dimensions: null, // Typically don't get video dimensions easily here
+        isIcon: false
       });
     }
+    // Add handling for data URI videos if needed later
+  }
+  
+  // --- Scan Phase 2: Computed Styles (background-image) ---
+  
+  // Scan for background images (more robustly)
+  const allElements = document.querySelectorAll('*');
+  const checkedBackgroundUrls = new Set(); // Avoid checking the same bg URL multiple times
+
+  for (const el of allElements) {
+      // Basic check to skip potentially hidden or irrelevant elements
+      if (el.offsetWidth === 0 && el.offsetHeight === 0 && el.tagName !== 'BODY') {
+          continue;
+      }
+
+      const style = window.getComputedStyle(el);
+      const bgImage = style.backgroundImage;
+
+      // Skip if no background image or if it's a gradient
+      if (!bgImage || bgImage === 'none' || bgImage.includes('-gradient(')) {
+          continue;
+      }
+
+      // Extract URLs (handles multiple backgrounds)
+      const matches = bgImage.match(/url\((['"]?)(.*?)\1\)/g) || [];
+      for (const match of matches) {
+          const url = match.replace(/url\((['"]?)(.*?)\1\)/, '$2');
+          if (!url || url.startsWith('data:') || checkedBackgroundUrls.has(url)) { // Skip data URIs and already checked URLs
+              continue;
+          }
+          checkedBackgroundUrls.add(url); // Mark as checked
+
+          const absoluteUrl = getAbsoluteURL(url);
+          if (absoluteUrl && !processedUrls.has(absoluteUrl)) {
+              processedUrls.add(absoluteUrl); // Mark as processing
+              
+              // *** Add filter check here ***
+              if (shouldSkipUrl(absoluteUrl)) {
+                console.log('Skipping non-asset background URL:', absoluteUrl);
+                continue; // Skip this URL
+              }
+
+              const dimensions = await getImageDimensions(absoluteUrl);
+              const size = await getFileSize(absoluteUrl);
+              // Pass dimensions safely to isLikelyIcon
+              const isIcon = isLikelyIcon(el, absoluteUrl, dimensions || {}); 
+              
+              addAsset(absoluteUrl, {
+                name: absoluteUrl.split('/').pop().split('?')[0],
+                type: getAssetTypeFromUrl(absoluteUrl) || (isIcon ? 'icon' : 'background'), // Use helper, default to background
+                url: absoluteUrl,
+                size, // Can be null
+                dimensions, // Can be null
+                isIcon
+              });
+          } else if (absoluteUrl && absoluteUrl.startsWith('data:image/') && !assets.has(absoluteUrl)) {
+             // Handle data URIs found in CSS
+             const type = absoluteUrl.match(/^data:image\/([^;]+);/)?.[1] || 'png';
+             addAsset(absoluteUrl, {
+                 name: `data_bg_image.${type}`,
+                 type: type,
+                 url: absoluteUrl,
+                 size: calculateDataUriSize(absoluteUrl),
+                 dimensions: await getImageDimensions(absoluteUrl),
+                 isIcon: isLikelyIcon(el, '', await getImageDimensions(absoluteUrl) || {})
+             });
+          }
+      }
+  }
+  
+  // --- Scan Phase 3: Shadow DOM (Recursive Scan) ---
+  
+  const scanNodeRecursively = async (node) => {
+    const shadowRoot = node.shadowRoot;
+    if (shadowRoot) {
+        // Scan elements within the shadow root
+        const shadowImages = shadowRoot.querySelectorAll('img');
+        for (const img of shadowImages) {
+            // Similar logic as top-level images, checking processedUrls
+             let potentialUrls = [img.src];
+             if (img.srcset) {
+               potentialUrls = potentialUrls.concat(
+                 img.srcset.split(',').map(entry => entry.trim().split(' ')[0])
+               );
+             }
+             for (const potentialSrc of potentialUrls) {
+                const src = getAbsoluteURL(potentialSrc); // Resolve relative to host document
+                if (src && !processedUrls.has(src) && !src.startsWith('data:')) {
+                    processedUrls.add(src);
+                    
+                    // *** Add filter check here ***
+                    if (shouldSkipUrl(src)) {
+                      console.log('Skipping non-asset shadow URL:', src);
+                      continue; // Skip this URL
+                    }
+
+                    const dimensions = await getImageDimensions(src);
+                    const size = await getFileSize(src);
+                    const isIcon = isLikelyIcon(img, src, dimensions || {});
+                    addAsset(src, {
+                         name: src.split('/').pop().split('?')[0],
+                         type: getAssetTypeFromUrl(src) || (isIcon ? 'icon' : 'image'),
+                         url: src, size, dimensions, isIcon 
+                    });
+                } else if (src && src.startsWith('data:image/') && !assets.has(src)) {
+                    const type = src.match(/^data:image\/([^;]+);/)?.[1] || 'png';
+                    addAsset(src, {
+                         name: `data_shadow_image.${type}`, type: type, url: src,
+                         size: calculateDataUriSize(src),
+                         dimensions: await getImageDimensions(src),
+                         isIcon: isLikelyIcon(img, '', await getImageDimensions(src) || {})
+                    });
+                }
+             }
+        }
+        
+        const shadowSvgs = shadowRoot.querySelectorAll('svg');
+        shadowSvgs.forEach(svg => {
+            // Similar logic as top-level SVGs
+             if (svg.clientWidth > 0 && svg.clientHeight > 0 && svg.outerHTML.length > 50) {
+                 const svgContent = svg.outerHTML;
+                 const key = `svg_${svgContent.substring(0, 100)}_${svgContent.length}`; 
+                 if (!assets.has(key)) {
+                    const dimensions = { width: svg.clientWidth, height: svg.clientHeight };
+                    const blob = new Blob([svgContent], {type: 'image/svg+xml'});
+                    const isIcon = isLikelyIcon(svg, '', dimensions);
+                    addAsset(key, {
+                        name: isIcon ? 'icon_shadow.svg' : 'vector_shadow.svg',
+                        type: 'svg', content: svgContent, size: blob.size,
+                        dimensions, isIcon, url: null
+                    });
+                 }
+             }
+        });
+
+        // Recursively scan children within the shadow root
+        const shadowChildren = shadowRoot.querySelectorAll('*');
+        for (const child of shadowChildren) {
+            await scanNodeRecursively(child); // Recurse
+        }
+    }
+  };
+
+  // Start recursive scan from the document body
+  for (const node of document.querySelectorAll('*')) {
+     await scanNodeRecursively(node);
   }
 
+
+  console.log(`Scan complete. Found ${assets.size} unique assets.`);
   return Array.from(assets.values());
 }
 
-// Function to get typography from the webpage
-function getTypography() {
-  const typographyMap = new Map();
-  
-  // Helper function to process an element's typography
-  function processElement(element) {
-    const styles = window.getComputedStyle(element);
-    const fontFamily = styles.fontFamily;
-    
-    // Skip if no font family or if it's a system font
-    if (!fontFamily || fontFamily === 'inherit') return;
-    
-    const key = `${fontFamily}-${styles.fontWeight}-${styles.fontSize}-${styles.lineHeight}`;
-    
-    if (!typographyMap.has(key)) {
-      typographyMap.set(key, {
-        styles: {
-          fontFamily: fontFamily,
-          fontWeight: styles.fontWeight,
-          fontStyle: styles.fontStyle,
-          fontSize: styles.fontSize,
-          lineHeight: styles.lineHeight,
-          letterSpacing: styles.letterSpacing,
-          textTransform: styles.textTransform
-        },
-        elements: [],
-        count: 0
-      });
-    }
-    
-    const entry = typographyMap.get(key);
-    entry.elements.push(element.tagName.toLowerCase());
-    entry.count++;
-  }
-  
-  // Process all text-containing elements
-  const textElements = document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, a, li, blockquote, label, button, input[type="text"], textarea');
-  textElements.forEach(processElement);
-  
-  // Also check stylesheets for typography rules
+// --- Helper Functions ---
+
+// Function to get asset type from URL extension
+function getAssetTypeFromUrl(url) {
+  if (!url || url.startsWith('data:')) return null;
   try {
-    Array.from(document.styleSheets).forEach(sheet => {
-      try {
-        Array.from(sheet.cssRules || sheet.rules).forEach(rule => {
-          if (rule.style && rule.style.fontFamily) {
-            const fontFamily = rule.style.fontFamily;
-            const key = `${fontFamily}-${rule.style.fontWeight || '400'}-${rule.style.fontSize || '16px'}-${rule.style.lineHeight || 'normal'}`;
-            
-            if (!typographyMap.has(key)) {
-              typographyMap.set(key, {
-                styles: {
-                  fontFamily: fontFamily,
-                  fontWeight: rule.style.fontWeight || '400',
-                  fontStyle: rule.style.fontStyle || 'normal',
-                  fontSize: rule.style.fontSize || '16px',
-                  lineHeight: rule.style.lineHeight || 'normal',
-                  letterSpacing: rule.style.letterSpacing || 'normal',
-                  textTransform: rule.style.textTransform || 'none'
-                },
-                elements: [],
-                count: 0
-              });
-            }
-          }
-        });
-      } catch (e) {
-        // Skip inaccessible stylesheets
-      }
-    });
+    const path = new URL(url).pathname;
+    const extension = path.split('.').pop()?.toLowerCase();
+    
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tif', 'tiff', 'ico'].includes(extension)) return 'image';
+    if (['svg'].includes(extension)) return 'svg';
+    if (['mp4', 'webm', 'mov', 'ogg', 'm4v', 'avi', 'wmv', 'flv'].includes(extension)) return 'video';
+    // Add more types if needed (e.g., fonts, audio)
+    
+    // Special check for URLs that *look* like icons even without standard extension
+    if (url.toLowerCase().includes('icon')) return 'icon'; 
+    
+    return null; // Or 'unknown' if preferred
   } catch (e) {
-    console.warn('Could not access some stylesheets:', e);
+    return null; // Invalid URL
   }
-  
-  return Object.fromEntries(typographyMap);
+}
+
+// Function to estimate size of base64 data URI
+function calculateDataUriSize(dataUri) {
+    if (!dataUri || !dataUri.startsWith('data:')) return null;
+    // Find the comma separating header from data
+    const commaIndex = dataUri.indexOf(',');
+    if (commaIndex === -1) return null;
+    
+    const base64Data = dataUri.substring(commaIndex + 1);
+    // Base64 encoding uses 4 characters for every 3 bytes of original data.
+    // Padding characters ('=') don't represent original data bytes.
+    const padding = (base64Data.endsWith('==') ? 2 : (base64Data.endsWith('=') ? 1 : 0));
+    const base64Length = base64Data.length;
+    
+    // Approximate size in bytes
+    return Math.floor(base64Length * (3 / 4)) - padding;
 }
 
 // Listen for messages from the popup
@@ -823,8 +1076,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ gradients });
   } else if (request.action === 'getTypography') {
     try {
-      const typography = getTypography();
-      console.log('Sending typography data:', typography);
+      if (!request.selector) {
+        throw new Error('Selector not provided for getTypography action.');
+      }
+      const element = document.querySelector(request.selector);
+      if (!element) {
+        throw new Error(`Element not found for selector: ${request.selector}`);
+      }
+      const typography = getTypography(element);
+      console.log('Sending typography data for selector:', request.selector, typography);
       sendResponse({ typography });
     } catch (error) {
       console.error('Error getting typography:', error);
