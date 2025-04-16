@@ -89,7 +89,7 @@ For any questions or concerns about this privacy policy, please contact us:
 - Email: [tsormed@gmail.com](mailto:tsormed@gmail.com)
 
 ## Last Updated
-[Current Date]
+Wed. 16 Apr 2025
 
 ## License
 This privacy policy is licensed under the MIT License.
