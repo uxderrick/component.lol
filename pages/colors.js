@@ -68,9 +68,48 @@ async function getAllColors() {
 // Import color mapping functionality
 import { getClosestColorName } from './colorMap.js';
 
+// Function to generate numbered color name
+function generateNumberedColorName(color, colors, familyName) {
+  // Get total colors in this family
+  const totalColors = colors.length;
+  
+  // Find the index of the current color (they are already sorted from darkest to lightest)
+  const index = colors.findIndex(([c]) => c === color);
+  
+  if (index === -1) return getClosestColorName(color); // Fallback if color not found
+  
+  // Calculate the number (from darkest = highest number to lightest = 1)
+  const number = totalColors - index;
+  
+  // Remove trailing 's' from family name (e.g., "Reds" -> "Red")
+  const baseName = familyName.endsWith('s') ? familyName.slice(0, -1) : familyName;
+  
+  // Return the formatted name
+  return `${baseName}-${number}`;
+}
+
 // Function to get a human-readable name for a color
-function getColorName(hex) {
-  return getClosestColorName(hex);
+function getColorName(color) {
+  // Get the color family first
+  const family = getColorFamily(color);
+  
+  // Get all colors in this family from both hex and rgb maps
+  const allColors = new Map([
+    ...Array.from(currentHexColors.entries()),
+    ...Array.from(currentRgbColors.entries())
+  ]);
+  
+  const familyColors = Array.from(allColors.entries())
+    .filter(([c]) => getColorFamily(c) === family)
+    .sort((a, b) => getColorBrightness(a[0]) - getColorBrightness(b[0]));
+  
+  // If we have colors in this family, use the numbered system
+  if (familyColors.length > 0) {
+    return generateNumberedColorName(color, familyColors, family);
+  }
+  
+  // Fallback to the original system if something goes wrong
+  return getClosestColorName(color);
 }
 
 // Function to show the toast notification
@@ -422,9 +461,8 @@ function generateCSSVariables(colors, format = 'hex') {
   // Add color variables
   colors.forEach(([color, count]) => {
     const colorName = getColorName(color).toLowerCase().replace(/\s+/g, '-');
-    const shortHex = color.replace('#', '').slice(-3);
     const colorValue = format === 'hex' ? color : hexToRgb(color);
-    css += `  --color-${colorName}-${shortHex}: ${colorValue};\n`;
+    css += `  --color-${colorName}: ${colorValue};\n`;
   });
   
   css += '}\n';
