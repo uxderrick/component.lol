@@ -105,55 +105,125 @@ function extractColors() {
   // Function to add color to map with count
   function addColor(color) {
     if (!color || color === 'transparent' || color === 'rgba(0, 0, 0, 0)') return;
-    const normalizedColor = normalizeColor(color);
+    // Attempt to normalize; if it fails or returns null (like for transparent), skip.
+    const normalizedColor = normalizeColor(color); 
+    if (!normalizedColor) return; 
     colorMap.set(normalizedColor, (colorMap.get(normalizedColor) || 0) + 1);
   }
-  
-  // Get all elements
-  const elements = document.getElementsByTagName('*');
-  
-  Array.from(elements).forEach(element => {
-    const styles = window.getComputedStyle(element);
-    
-    // Check common color properties
-    addColor(styles.color);
-    addColor(styles.backgroundColor);
-    addColor(styles.borderColor);
-    addColor(styles.borderTopColor);
-    addColor(styles.borderBottomColor);
-    addColor(styles.borderLeftColor);
-    addColor(styles.borderRightColor);
-    addColor(styles.outlineColor);
-    addColor(styles.textDecorationColor);
-    addColor(styles.boxShadow?.match(/rgba?\([^)]+\)|#[0-9a-f]{3,8}/gi)?.[0]);
-    
-    // Check for gradients
-    const backgroundImage = styles.backgroundImage;
-    if (backgroundImage) {
-      const colors = backgroundImage.match(/rgba?\([^)]+\)|#[0-9a-f]{3,8}/gi);
-      if (colors) colors.forEach(addColor);
+
+  // Recursive function to process an element and its shadow DOM children
+  function processElementAndChildren(element) {
+    // --- Add filtering for extension-specific elements here if needed ---
+    // Example: if (element.closest('.my-extension-root-class')) return;
+
+    try {
+      const styles = window.getComputedStyle(element);
+      
+      // Check common color properties
+      addColor(styles.color);
+      addColor(styles.backgroundColor);
+      // Check border colors more robustly
+      if (styles.borderWidth !== '0px') {
+          addColor(styles.borderColor); // General border color
+          // Check individual sides if necessary, though borderColor often covers it
+          addColor(styles.borderTopColor);
+          addColor(styles.borderRightColor);
+          addColor(styles.borderBottomColor);
+          addColor(styles.borderLeftColor);
+      }
+      addColor(styles.outlineColor);
+      addColor(styles.textDecorationColor);
+      
+      // Extract color from box-shadow if present
+      const boxShadow = styles.boxShadow;
+      if (boxShadow && boxShadow !== 'none') {
+        // Regex to find color values (hex, rgb, rgba) within the shadow string
+        const shadowColors = boxShadow.match(/rgba?\([^)]+\)|#[0-9a-f]{3,8}|rgb\([^)]+\)/gi);
+        if (shadowColors) shadowColors.forEach(addColor);
+      }
+      
+      // Extract colors from background-image gradients
+      const backgroundImage = styles.backgroundImage;
+      if (backgroundImage && backgroundImage.includes('-gradient(')) { // More specific check for gradients
+        const gradientColors = backgroundImage.match(/rgba?\([^)]+\)|#[0-9a-f]{3,8}|rgb\([^)]+\)/gi);
+        if (gradientColors) gradientColors.forEach(addColor);
+      }
+    } catch(e) {
+      // Ignore elements where styles can't be computed (e.g., display:none in some cases)
+      // console.warn('Could not compute style for element:', element, e);
     }
-  });
+
+    // Process children within the Shadow DOM, if it exists
+    if (element.shadowRoot) {
+      try {
+        const shadowElements = element.shadowRoot.querySelectorAll('*');
+        shadowElements.forEach(processElementAndChildren); // Recurse
+      } catch(e) {
+         console.warn('Could not query shadowRoot:', element, e);
+      }
+    }
+  }
+  
+  // Get all elements in the main document and process them
+  const allElements = document.querySelectorAll('*');
+  allElements.forEach(processElementAndChildren);
   
   // Also check all stylesheets
   try {
     Array.from(document.styleSheets).forEach(sheet => {
+      // Skip extension's own stylesheets and inaccessible ones
+      if (sheet.href && (
+          sheet.href.startsWith('chrome-extension://') || 
+          sheet.href.startsWith('moz-extension://')
+      )) {
+        return; // Skip this extension stylesheet
+      }
+      
       try {
         Array.from(sheet.cssRules || sheet.rules).forEach(rule => {
-          if (rule.style) {
+          // Check if it's a style rule and has a style object
+          if (rule instanceof CSSStyleRule && rule.style) {
             addColor(rule.style.color);
             addColor(rule.style.backgroundColor);
-            addColor(rule.style.borderColor);
+            if (rule.style.borderWidth !== '0px' && rule.style.borderWidth !== '') {
+                addColor(rule.style.borderColor); // More specific check
+                addColor(rule.style.borderTopColor);
+                addColor(rule.style.borderRightColor);
+                addColor(rule.style.borderBottomColor);
+                addColor(rule.style.borderLeftColor);
+            }
+             addColor(rule.style.outlineColor);
+             addColor(rule.style.textDecorationColor);
+
+            // Extract color from box-shadow if present in rule style
+            const boxShadowRule = rule.style.boxShadow;
+            if (boxShadowRule && boxShadowRule !== 'none') {
+              const shadowColorsRule = boxShadowRule.match(/rgba?\([^)]+\)|#[0-9a-f]{3,8}|rgb\([^)]+\)/gi);
+              if (shadowColorsRule) shadowColorsRule.forEach(addColor);
+            }
+
+             // Extract colors from background-image gradients in rule style
+            const backgroundImageRule = rule.style.backgroundImage;
+            if (backgroundImageRule && backgroundImageRule.includes('-gradient(')) {
+              const gradientColorsRule = backgroundImageRule.match(/rgba?\([^)]+\)|#[0-9a-f]{3,8}|rgb\([^)]+\)/gi);
+              if (gradientColorsRule) gradientColorsRule.forEach(addColor);
+            }
           }
+           // Potentially handle other rule types like @media, @supports if necessary
+           // else if (rule instanceof CSSMediaRule || rule instanceof CSSSupportsRule) { ... recurse into rule.cssRules ... }
         });
       } catch (e) {
-        // Skip inaccessible stylesheets (e.g., cross-origin)
+         console.warn(`Could not process rules for stylesheet (possibly cross-origin): ${sheet.href || 'inline style'}`, e.message);
+        // Skip inaccessible rules within a stylesheet (e.g., cross-origin restrictions)
       }
     });
   } catch (e) {
-    console.warn('Could not access some stylesheets:', e);
+    console.warn('Could not access document.styleSheets:', e);
   }
   
+  // Ensure null keys (from failed normalizations) are removed if any snuck in.
+  colorMap.delete(null); 
+
   return Array.from(colorMap.entries());
 }
 
@@ -276,187 +346,171 @@ function normalizeGradient(gradient) {
 
 // Function to resolve CSS variable to its actual value
 function resolveCSSVariable(value) {
+  // NOTE: This function might still be needed by other parts of content.js,
+  // but it's not needed for analyzeTypography anymore if we only use computedStyle.
   if (!value || !value.startsWith('var(--')) return value;
-  
+
   // Create a temporary element to compute the style
   const temp = document.createElement('div');
-  temp.style.cssText = `font-size: ${value}; line-height: ${value};`;
+  // Apply to multiple properties in case one is invalid for the element
+  temp.style.cssText = `color: ${value}; background-color: ${value}; border-color: ${value}; font-size: ${value}; line-height: ${value};`;
+  temp.style.display = 'none'; // Avoid affecting layout
   document.body.appendChild(temp);
-  
-  // Get the computed value
+
+  // Get the computed value - try common properties
   const computedStyle = window.getComputedStyle(temp);
-  const resolvedValue = computedStyle.fontSize !== value ? computedStyle.fontSize : computedStyle.lineHeight;
-  
+  let resolvedValue = computedStyle.color;
+  if (resolvedValue === value || !resolvedValue) resolvedValue = computedStyle.backgroundColor;
+  if (resolvedValue === value || !resolvedValue) resolvedValue = computedStyle.borderColor;
+  if (resolvedValue === value || !resolvedValue) resolvedValue = computedStyle.fontSize;
+  if (resolvedValue === value || !resolvedValue) resolvedValue = computedStyle.lineHeight;
+
+
   // Clean up
   document.body.removeChild(temp);
-  
-  return resolvedValue;
+
+  // Return the original value if resolution failed
+  return resolvedValue !== value ? resolvedValue : value;
 }
 
 // Function to analyze typography on the page
 function analyzeTypography() {
   const typographyMap = new Map();
-  const processedStyles = new Set();
-  
+  // const processedStyles = new Set(); // No longer needed?
+
   // Helper function to normalize font family
   function normalizeFontFamily(fontFamily) {
     if (!fontFamily) return '';
-    return fontFamily.split(',').map(font => 
-      font.trim().replace(/['"]/g, '').toLowerCase()
-    )[0];
+    // Take the first font in the stack, remove quotes, trim, lowercase
+    return fontFamily.split(',')[0].trim().replace(/['"]/g, '').toLowerCase();
   }
-  
+
   // Helper function to create a unique key for typography styles
   function createTypographyKey(styles) {
+    // Key based on the directly computed values which should be consistent
     return `${styles.fontFamily}-${styles.fontSize}-${styles.fontWeight}-${styles.fontStyle}`;
   }
 
   // Helper function to check if a font is a system font
   function isSystemFont(fontFamily) {
+    // Consider expanding this list or using a more robust check if needed
     const systemFonts = [
-      'system-ui', '-apple-system', 'segoe ui', 'roboto', 'helvetica neue',
-      'arial', 'helvetica', 'sans-serif', 'serif', 'monospace', 'cursive',
-      'fantasy', 'times new roman', 'times', 'courier', 'courier new',
-      'georgia', 'palatino', 'garamond', 'bookman', 'trebuchet ms', 'impact',
-      'tahoma', 'verdana'
+      'system-ui', '-apple-system', 'blinkmacsystemfont', 'segoe ui', 'roboto', 'helvetica neue',
+      'ubuntu', 'cantarell', 'firoid sans', 'oxygen-sans', // Common Linux fonts
+      'arial', 'helvetica', 'sans-serif', // Generic fallbacks
+      'serif', 'times new roman', 'times', 'georgia', // Generic serif
+      'monospace', 'courier new', 'courier' // Generic mono
+      // Avoid overly broad matches like just 'sans'
     ];
+    // Use startsWith for font stacks like "Roboto, sans-serif"
+    // return systemFonts.some(sysFont => fontFamily.startsWith(sysFont));
+     // Exact match on the first font in the stack is usually better
     return systemFonts.includes(fontFamily.toLowerCase());
   }
 
-  // Helper function to resolve style value
-  function resolveStyleValue(value, property) {
-    if (!value) return property === 'fontSize' ? '16px' : 
-                 property === 'lineHeight' ? '1.5' : 
-                 property === 'fontWeight' ? '400' : 'normal';
-    
-    // Handle CSS variables
-    if (value.startsWith('var(--')) {
-      return resolveCSSVariable(value);
-    }
-    
-    // Handle relative units for font-size
-    if (property === 'fontSize' && value.includes('rem')) {
-      const rootFontSize = window.getComputedStyle(document.documentElement).fontSize;
-      const remValue = parseFloat(value);
-      return `${remValue * parseFloat(rootFontSize)}px`;
-    }
-    
-    if (property === 'fontSize' && value.includes('em')) {
-      // Default to 16px if we can't determine parent font size
-      const baseFontSize = 16;
-      const emValue = parseFloat(value);
-      return `${emValue * baseFontSize}px`;
-    }
-    
-    return value;
-  }
+  // // Helper function to resolve style value - NO LONGER NEEDED FOR analyzeTypography
+  // function resolveStyleValue(value, property) { ... }
 
-  // Helper function to process style rule
-  function processStyleRule(rule) {
-    const fontFamily = normalizeFontFamily(rule.style.fontFamily);
-    if (!fontFamily || isSystemFont(fontFamily)) return;
+  // // Helper function to process style rule - NO LONGER NEEDED
+  // function processStyleRule(rule) { ... }
 
-    // Resolve all style values
-    const fontSize = resolveStyleValue(rule.style.fontSize, 'fontSize');
-    const lineHeight = resolveStyleValue(rule.style.lineHeight, 'lineHeight');
-    const fontWeight = resolveStyleValue(rule.style.fontWeight, 'fontWeight');
-    const fontStyle = resolveStyleValue(rule.style.fontStyle, 'fontStyle');
+  // // Process stylesheets - REMOVED
+  // try {
+  //   Array.from(document.styleSheets).forEach(sheet => { ... });
+  // } catch (e) {
+  //   console.warn('Could not access document.styleSheets:', e);
+  // }
 
-    const key = createTypographyKey({
-      fontFamily,
-      fontSize,
-      fontWeight,
-      fontStyle
-    });
-
-    if (typographyMap.has(key)) {
-      typographyMap.get(key).count++;
-    } else {
-      typographyMap.set(key, {
-        element: { 
-          type: 'css-rule',
-          tagName: 'CSS',
-          selector: rule.selectorText || ''
-        },
-        styles: {
-          fontFamily,
-          fontSize,
-          fontWeight,
-          fontStyle,
-          lineHeight
-        },
-        count: 1
-      });
-    }
-  }
-
-  // Process stylesheets
+  // Process actual elements on the page using computed styles
   try {
-    Array.from(document.styleSheets).forEach(sheet => {
+    const elements = document.querySelectorAll('*');
+    elements.forEach(element => {
       try {
-        // Skip extension's own stylesheets
-        if (sheet.href && (
-          sheet.href.includes('chrome-extension://') || 
-          sheet.href.includes('moz-extension://')
-        )) {
+        const computedStyle = window.getComputedStyle(element);
+
+        // --- FILTERING ---
+        // 1. Skip hidden elements
+        if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') {
+          return;
+        }
+        // 2. Skip elements with zero size (optional, uncomment if needed)
+        // if (element.offsetWidth === 0 && element.offsetHeight === 0 && element.tagName !== 'BODY') {
+        //    return;
+        // }
+        // 3. Skip elements with 0px font size (Comment out the 'return' to report 0px sizes)
+        if (computedStyle.fontSize === '0px') {
+           return;
+        }
+        // --- END FILTERING ---
+
+        // Use the *first* font in the computed stack
+        const fontFamily = normalizeFontFamily(computedStyle.fontFamily);
+
+        // Skip system fonts
+        if (!fontFamily || isSystemFont(fontFamily)) {
           return;
         }
 
-        Array.from(sheet.cssRules || sheet.rules).forEach(rule => {
-          if (rule instanceof CSSStyleRule && rule.style.fontFamily) {
-            processStyleRule(rule);
-          }
+        // Directly use computed values
+        const fontSize = computedStyle.fontSize; // e.g., "16px"
+        const lineHeight = computedStyle.lineHeight; // e.g., "24px" or "normal"
+        const fontWeight = computedStyle.fontWeight; // e.g., "400", "700"
+        const fontStyle = computedStyle.fontStyle; // e.g., "normal", "italic"
+
+        // Skip if essential style properties are missing (shouldn't happen with computedStyle often)
+        if (!fontSize || !fontWeight || !fontStyle) {
+            return;
+        }
+
+        const key = createTypographyKey({
+          fontFamily,
+          fontSize,
+          fontWeight,
+          fontStyle
         });
+
+        if (typographyMap.has(key)) {
+          // Increment count for existing style combination
+          typographyMap.get(key).count++;
+          // Optionally, add element info if needed:
+          // typographyMap.get(key).elements.push({ tagName: element.tagName });
+        } else {
+          // Add new style combination
+          typographyMap.set(key, {
+            element: { // Store info about the first element found with this style
+              type: element.tagName.toLowerCase(),
+              tagName: element.tagName,
+              selector: '' // Generating selector is complex, omit for now
+            },
+            styles: {
+              fontFamily, // Normalized first font
+              fontSize,   // Computed pixel value (usually)
+              fontWeight, // Computed weight
+              fontStyle,  // Computed style
+              lineHeight  // Computed line height
+            },
+            count: 1
+            // Optionally track elements:
+            // elements: [{ tagName: element.tagName }]
+          });
+        }
       } catch (e) {
-        console.warn('Could not access stylesheet:', e.message);
+         // Ignore errors getting computed style for specific elements (e.g., SVGs in some browsers)
+         // console.warn("Could not process element:", element, e);
       }
-    });
-
-    // Also scan actual elements on the page to catch computed/dynamic styles
-    const elements = document.querySelectorAll('*');
-    elements.forEach(element => {
-      const computedStyle = window.getComputedStyle(element);
-      const fontFamily = normalizeFontFamily(computedStyle.fontFamily);
-      
-      if (!fontFamily || isSystemFont(fontFamily)) return;
-
-      const fontSize = computedStyle.fontSize;
-      const lineHeight = computedStyle.lineHeight;
-      const fontWeight = computedStyle.fontWeight;
-      const fontStyle = computedStyle.fontStyle;
-
-      const key = createTypographyKey({
-        fontFamily,
-        fontSize,
-        fontWeight,
-        fontStyle
-      });
-
-      if (typographyMap.has(key)) {
-        typographyMap.get(key).count++;
-      } else {
-        typographyMap.set(key, {
-          element: {
-            type: element.tagName.toLowerCase(),
-            tagName: element.tagName,
-            selector: ''
-          },
-          styles: {
-            fontFamily,
-            fontSize,
-            fontWeight,
-            fontStyle,
-            lineHeight
-          },
-          count: 1
-        });
-      }
-    });
+    }); // End elements.forEach
   } catch (e) {
-    console.error('Error processing typography:', e);
+    console.error('Error processing typography from DOM elements:', e);
   }
-  
-  return Object.fromEntries(typographyMap);
+
+  // Convert Map to object format expected by popup script
+  const resultObject = {};
+  typographyMap.forEach((value, key) => {
+    // Use the generated key as the key for the result object
+    resultObject[key] = value;
+  });
+
+  return resultObject; // Return the object
 }
 
 // Function to analyze buttons on the webpage

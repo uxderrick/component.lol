@@ -145,7 +145,7 @@ body {
 /* Components grid */
 .components-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-md); /* Use medium spacing */
   padding: 0; 
 }
@@ -272,10 +272,19 @@ body {
 
 /* Add styles for the SVG icons */
 .card-icon {
-  width: 32px; /* Adjust size as needed */
+  width: 32px;
   height: 32px;
-  color: #6B7280; /* Use a slightly muted color */
-  margin-bottom: var(--spacing-sm); /* Space below icon */
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
 }
 
 /* Remove commented out old variants */

@@ -122,7 +122,13 @@
   aspect-ratio: 1;
   width: 100%;
   position: relative;
-  background: var(--color-hover);
+  background-color: #e0e0e0;
+  background-image: linear-gradient(45deg, #b0b0b0 25%, transparent 25%),
+                    linear-gradient(-45deg, #b0b0b0 25%, transparent 25%),
+                    linear-gradient(45deg, transparent 75%, #b0b0b0 75%),
+                    linear-gradient(-45deg, transparent 75%, #b0b0b0 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -135,6 +141,8 @@
   max-height: 100%;
   object-fit: contain;
   padding: var(--spacing-sm);
+  position: relative;
+  z-index: 1;
 }
 
 .asset-info {
@@ -185,6 +193,7 @@
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
+  z-index: 2;
 }
 
 .asset-card:hover .download-button {

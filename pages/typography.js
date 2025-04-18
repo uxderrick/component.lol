@@ -24,6 +24,44 @@ const weightValue = {
   'black': '900'
 };
 
+// Base font size for REM calculations
+const BASE_FONT_SIZE = 16;
+
+// Function to get the currently selected unit
+const getCurrentUnit = () => {
+  const unitSelect = document.getElementById('font-unit');
+  // Default to 'px' if the element doesn't exist or has no value
+  return unitSelect ? unitSelect.value : 'px';
+};
+
+// Function to format size based on the current unit
+const formatSize = (pxSize) => {
+  const unit = getCurrentUnit();
+  if (unit === 'rem') {
+    const remSize = parseFloat(pxSize) / BASE_FONT_SIZE;
+    // Use toFixed(3) for precision, but remove trailing zeros and the decimal point if it becomes whole
+    return `${parseFloat(remSize.toFixed(3))}rem`;
+  }
+  return `${parseFloat(pxSize)}px`; // Ensure it always returns with 'px' unit explicitly
+};
+
+// Function to format line height based on the current unit
+const formatLineHeight = (lineHeight) => {
+  const unit = getCurrentUnit();
+  // If lineHeight is just a number (unitless), return it as is
+  if (!isNaN(lineHeight) && !lineHeight.toString().includes('px')) {
+    return lineHeight;
+  }
+  
+  // Convert px value to rem if needed
+  const pxValue = parseFloat(lineHeight);
+  if (unit === 'rem') {
+    const remValue = pxValue / BASE_FONT_SIZE;
+    return `${parseFloat(remValue.toFixed(3))}rem`;
+  }
+  return `${pxValue}px`;
+};
+
 // Function to determine font category based on font characteristics
 function getFontCategory(font) {
   const family = font.family.toLowerCase();
@@ -66,10 +104,8 @@ function getFontStylesByCategory(category) {
   return defaultStyles[category] || defaultStyles['body'];
 }
 
-// Function to generate font styles based on format
+// Function to generate font styles
 function generateFontStyles(fontData) {
-  const format = document.getElementById('font-format').value;
-  
   // Get the current preview text element to get real-time styles
   const previewText = document.querySelector(`.font-preview-text[style*="font-family: '${fontData.family}'"]`);
   const currentStyles = previewText ? window.getComputedStyle(previewText) : null;
@@ -79,17 +115,14 @@ function generateFontStyles(fontData) {
   const lineHeight = currentStyles ? currentStyles.lineHeight : fontData.lineHeight;
   const fontWeight = currentStyles ? currentStyles.fontWeight : fontData.weights[0];
   
-  if (format === 'tailwind') {
-    return `font-family: ${fontData.family};
-font-weight: ${fontWeight};
-font-size: ${fontSize};
-line-height: ${lineHeight};`;
-  }
+  // Format the values based on selected unit
+  const displayFontSize = formatSize(parseFloat(fontSize));
+  const displayLineHeight = formatLineHeight(lineHeight);
   
   return `font-family: '${fontData.family}';
 font-weight: ${fontWeight};
-font-size: ${fontSize};
-line-height: ${lineHeight};`;
+font-size: ${displayFontSize};
+line-height: ${displayLineHeight};`;
 }
 
 // Toast notification functionality
@@ -338,9 +371,13 @@ const createFontCard = (fontData) => {
   };
 
   // Get the font size and line height (now we know there's only one of each)
-  const fontSize = extractFontSize(fontData.fontSizes[0]);
+  const fontSizePx = parseFloat(extractFontSize(fontData.fontSizes[0])); // Ensure we have a number
   const lineHeight = fontData.lineHeights[0];
   const fontWeight = fontData.weights[0];
+
+  // Format size and line height based on selected unit
+  const displayFontSize = formatSize(fontSizePx);
+  const displayLineHeight = formatLineHeight(lineHeight);
 
   // Create a pattern based on the font category
   const getPatternStyle = (category) => {
@@ -363,8 +400,8 @@ const createFontCard = (fontData) => {
       <div class="font-preview-container">
         <p class="font-preview-text" style="
           font-family: '${fontData.family}';
-          font-size: ${fontSize};
-          line-height: ${lineHeight};
+          font-size: ${fontSizePx}px; /* Always set style in px */
+          line-height: ${lineHeight}; /* Keep original line height */
           font-weight: ${fontWeight};"
         >${getPreviewText(category)}</p>
         <div class="font-preview-controls">
@@ -377,8 +414,8 @@ const createFontCard = (fontData) => {
       <div class="font-name">${fontData.family}</div>
       <div class="font-details">${displayWeightName} ${fontWeight}</div>
       <div class="font-meta">
-        <span class="font-size">${fontSize}</span>
-        <span class="line-height">/${lineHeight}</span>
+        <span class="font-size">${displayFontSize}</span>
+        <span class="line-height">/${displayLineHeight}</span>
       </div>
     </div>
   `;
@@ -391,11 +428,12 @@ const createFontCard = (fontData) => {
   controls.forEach(control => {
     control.addEventListener('click', (e) => {
       e.stopPropagation(); // Prevent card click
-      const currentSize = parseFloat(window.getComputedStyle(previewText).fontSize);
-      const newSize = control.dataset.action === 'increase' ? currentSize + 2 : currentSize - 2;
-      if (newSize >= 8 && newSize <= 48) { // Limit size range
-        previewText.style.fontSize = `${newSize}px`;
-        fontSizeSpan.textContent = `${newSize}px`;
+      const currentSizePx = parseFloat(window.getComputedStyle(previewText).fontSize);
+      const newSizePx = control.dataset.action === 'increase' ? currentSizePx + 2 : currentSizePx - 2;
+      if (newSizePx >= 8 && newSizePx <= 48) { // Limit size range
+        previewText.style.fontSize = `${newSizePx}px`;
+        // Update the display span based on the current unit selection
+        fontSizeSpan.textContent = formatSize(newSizePx);
       }
     });
   });
@@ -409,8 +447,9 @@ const createFontCard = (fontData) => {
 };
 
 // Function to update typography display
-async function updateTypographyDisplay(format, weight, category) {
+async function updateTypographyDisplay(weight) {
   const grid = document.getElementById('typography-grid');
+  const currentUnit = getCurrentUnit();
   
   // Show loading state
   grid.innerHTML = `
@@ -446,8 +485,22 @@ async function updateTypographyDisplay(format, weight, category) {
       return;
     }
 
+    // Filter fonts based on weight only
+    const filteredFonts = fonts.filter(font => {
+      if (weight !== 'all') {
+        const weightMap = {
+          'regular': '400',
+          'medium': '500',
+          'semibold': '600',
+          'bold': '700'
+        };
+        return font.weight === weightMap[weight];
+      }
+      return true;
+    });
+
     // Group fonts by family
-    const fontsByFamily = fonts.reduce((acc, font) => {
+    const fontsByFamily = filteredFonts.reduce((acc, font) => {
       if (!acc[font.family]) {
         acc[font.family] = [];
       }
@@ -458,6 +511,16 @@ async function updateTypographyDisplay(format, weight, category) {
     // Sort families by usage (number of variations)
     const sortedFamilies = Object.entries(fontsByFamily)
       .sort(([, fontsA], [, fontsB]) => fontsB.length - fontsA.length);
+
+    if (sortedFamilies.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-state">
+          <p>No fonts found matching the selected weight</p>
+          <p class="empty-state-subtitle">Try selecting a different weight</p>
+        </div>
+      `;
+      return;
+    }
 
     // Create sections for each family
     sortedFamilies.forEach(([family, fonts]) => {
@@ -482,9 +545,7 @@ async function updateTypographyDisplay(format, weight, category) {
         return weightA - weightB;
       });
 
-      // Create font cards
       fonts.forEach(font => {
-        // Adapt font data to match createFontCard expectations
         const adaptedFont = {
           family: font.family,
           weights: [font.weight],
@@ -507,7 +568,7 @@ async function updateTypographyDisplay(format, weight, category) {
     grid.innerHTML = `
       <div class="empty-state">
         <p>Error loading typography</p>
-        <p class="empty-state-subtitle">Please try refreshing the page or navigating to a different webpage</p>
+        <p class="empty-state-subtitle">Please refresh the page or navigate to a different webpage</p>
       </div>
     `;
   }
@@ -579,7 +640,7 @@ function createScalePreview(size, name, text = 'Aa') {
   preview.className = 'scale-preview-text';
   
   // Get selected unit
-  const unit = document.getElementById('scale-unit').value;
+  const unit = getCurrentUnit();
   const displaySize = unit === 'rem' ? `${(size/16).toFixed(3)}rem` : `${size}px`;
   
   preview.style.fontSize = displaySize;
@@ -605,53 +666,53 @@ function createScalePreview(size, name, text = 'Aa') {
 // Update generateScaleCSS to handle different units
 function generateScaleCSS(scale) {
   const fontFamily = document.getElementById('scale-font-family').value;
-  const unit = document.getElementById('scale-unit').value;
+  const unit = getCurrentUnit();
   
   const getSizeWithUnit = (size) => {
     return unit === 'rem' ? `${(size/16).toFixed(3)}rem` : `${size}px`;
   };
   
   return `:root {
-  --font-family: ${fontFamily};
-  --font-size-xs: ${getSizeWithUnit(scale.xs)};
-  --font-size-sm: ${getSizeWithUnit(scale.sm)};
-  --font-size-base: ${getSizeWithUnit(scale.base)};
-  --font-size-lg: ${getSizeWithUnit(scale.lg)};
-  --font-size-xl: ${getSizeWithUnit(scale.xl)};
-  --font-size-2xl: ${getSizeWithUnit(scale['2xl'])};
-  --font-size-3xl: ${getSizeWithUnit(scale['3xl'])};
-  --font-size-4xl: ${getSizeWithUnit(scale['4xl'])};
-}`;
+    --font-family: ${fontFamily};
+    --font-size-xs: ${getSizeWithUnit(scale.xs)};
+    --font-size-sm: ${getSizeWithUnit(scale.sm)};
+    --font-size-base: ${getSizeWithUnit(scale.base)};
+    --font-size-lg: ${getSizeWithUnit(scale.lg)};
+    --font-size-xl: ${getSizeWithUnit(scale.xl)};
+    --font-size-2xl: ${getSizeWithUnit(scale['2xl'])};
+    --font-size-3xl: ${getSizeWithUnit(scale['3xl'])};
+    --font-size-4xl: ${getSizeWithUnit(scale['4xl'])};
+  }`;
 }
 
 // Update generateTailwindConfig to handle different units
 function generateTailwindConfig(scale) {
   const fontFamily = document.getElementById('scale-font-family').value;
-  const unit = document.getElementById('scale-unit').value;
+  const unit = getCurrentUnit();
   
   const getSizeWithUnit = (size) => {
     return unit === 'rem' ? `${(size/16).toFixed(3)}rem` : `${size}px`;
   };
   
   return `module.exports = {
-  theme: {
-    extend: {
-      fontFamily: {
-        'scale': ['${fontFamily}'],
-      },
-      fontSize: {
-        'xs': '${getSizeWithUnit(scale.xs)}',
-        'sm': '${getSizeWithUnit(scale.sm)}',
-        'base': '${getSizeWithUnit(scale.base)}',
-        'lg': '${getSizeWithUnit(scale.lg)}',
-        'xl': '${getSizeWithUnit(scale.xl)}',
-        '2xl': '${getSizeWithUnit(scale['2xl'])}',
-        '3xl': '${getSizeWithUnit(scale['3xl'])}',
-        '4xl': '${getSizeWithUnit(scale['4xl'])}',
+    theme: {
+      extend: {
+        fontFamily: {
+          'scale': ['${fontFamily}'],
+        },
+        fontSize: {
+          'xs': '${getSizeWithUnit(scale.xs)}',
+          'sm': '${getSizeWithUnit(scale.sm)}',
+          'base': '${getSizeWithUnit(scale.base)}',
+          'lg': '${getSizeWithUnit(scale.lg)}',
+          'xl': '${getSizeWithUnit(scale.xl)}',
+          '2xl': '${getSizeWithUnit(scale['2xl'])}',
+          '3xl': '${getSizeWithUnit(scale['3xl'])}',
+          '4xl': '${getSizeWithUnit(scale['4xl'])}',
+        }
       }
     }
-  }
-}`;
+  }`;
 }
 
 // Function to display type scale
@@ -722,7 +783,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (selectedTab === 'fonts') {
         colorSelectors.style.display = 'flex';
-        updateTypographyDisplay(formatSelect.value, weightSelect.value, categorySelect.value);
+        updateTypographyDisplay(weightSelect.value);
       } else if (selectedTab === 'scale') {
         scaleControls.style.display = 'flex';
         populateScaleFontFamilies().then(() => displayTypeScale());
@@ -733,34 +794,30 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Initialize filters
-  const formatSelect = document.getElementById('font-format');
   const weightSelect = document.getElementById('font-weight');
-  const categorySelect = document.getElementById('font-category');
+  const unitSelect = document.getElementById('font-unit');
   
   const handleFilterChange = () => {
-    const format = formatSelect.value;
     const weight = weightSelect.value;
-    const category = categorySelect.value;
-    updateTypographyDisplay(format, weight, category);
+    updateTypographyDisplay(weight);
   };
   
-  formatSelect.addEventListener('change', handleFilterChange);
-  weightSelect.addEventListener('change', handleFilterChange);
-  categorySelect.addEventListener('change', handleFilterChange);
+  if (weightSelect) weightSelect.addEventListener('change', handleFilterChange);
+  if (unitSelect) unitSelect.addEventListener('change', handleFilterChange);
   
-  // Add event listeners for scale controls
+  // Add event listeners for scale controls if they exist
   const scaleRatio = document.getElementById('scale-ratio');
   const scaleFormat = document.getElementById('scale-format');
   const scaleFontFamily = document.getElementById('scale-font-family');
   const scaleBaseSize = document.getElementById('scale-base-size');
   const scaleUnit = document.getElementById('scale-unit');
     
-  scaleRatio.addEventListener('change', displayTypeScale);
-  scaleFormat.addEventListener('change', displayTypeScale);
-  scaleFontFamily.addEventListener('change', displayTypeScale);
-  scaleBaseSize.addEventListener('change', displayTypeScale);
-  scaleUnit.addEventListener('change', displayTypeScale);
+  if (scaleRatio) scaleRatio.addEventListener('change', displayTypeScale);
+  if (scaleFormat) scaleFormat.addEventListener('change', displayTypeScale);
+  if (scaleFontFamily) scaleFontFamily.addEventListener('change', displayTypeScale);
+  if (scaleBaseSize) scaleBaseSize.addEventListener('change', displayTypeScale);
+  if (scaleUnit) scaleUnit.addEventListener('change', displayTypeScale);
   
-  // Initial display
-  updateTypographyDisplay('css', 'all', 'all');
+  // Initial display - Delay slightly to allow extension context to settle
+  setTimeout(handleFilterChange, 100);
 }); 

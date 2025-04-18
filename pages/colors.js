@@ -694,9 +694,9 @@ function groupColorsByFamily(colors) {
   // Sort families by name
   const sortedFamilies = new Map([...families.entries()].sort());
   
-  // Sort colors within each family by usage count
+  // Sort colors within each family by brightness (darkest to lightest)
   sortedFamilies.forEach(colors => {
-    colors.sort((a, b) => b[1] - a[1]);
+    colors.sort((a, b) => getColorBrightness(a[0]) - getColorBrightness(b[0]));
   });
   
   return sortedFamilies;
@@ -713,11 +713,71 @@ function createFamilySection(familyName, colors) {
   
   const grid = document.createElement('div');
   grid.className = 'colors-grid';
-  
-  colors.forEach(([color, count]) => {
-    const card = createColorCard(color, count);
-    grid.appendChild(card);
-  });
+
+  // --- Modification for Grayscale --- 
+  if (familyName === 'Grayscale') {
+    const brightnessThreshold = 0.95; // Threshold for considering a color "near white"
+    const nearWhites = [];
+    const otherGrays = [];
+
+    colors.forEach(([color, count]) => {
+      if (getColorBrightness(color) >= brightnessThreshold) {
+        nearWhites.push([color, count]);
+      } else {
+        otherGrays.push([color, count]);
+      }
+    });
+
+    // Create a summary card for near whites if any exist
+    if (nearWhites.length > 0) {
+      const totalNearWhiteCount = nearWhites.reduce((sum, [, count]) => sum + count, 0);
+      
+      const summaryCard = document.createElement('div');
+      summaryCard.className = 'color-card near-white-summary'; // Add specific class
+      // summaryCard.setAttribute('aria-label', `Near white colors, used ${totalNearWhiteCount} times in total`);
+
+      const swatch = document.createElement('div');
+      swatch.className = 'color-swatch';
+      swatch.style.backgroundColor = '#FFFFFF'; // Representative swatch
+      swatch.style.border = '1px solid var(--color-border-subtle)'; // Add border for visibility
+
+      const info = document.createElement('div');
+      info.className = 'color-info';
+
+      const name = document.createElement('div');
+      name.className = 'color-name';
+      name.textContent = 'Near Whites'; // Summary name
+
+      const hex = document.createElement('div');
+      hex.className = 'color-hex';
+      hex.textContent = `${nearWhites.length} variations`; // Indicate multiple variations
+
+      const countEl = document.createElement('div');
+      countEl.className = 'color-count';
+      countEl.textContent = `Used ${totalNearWhiteCount} time${totalNearWhiteCount > 1 ? 's' : ''} total`;
+      
+      info.appendChild(name);
+      info.appendChild(hex);
+      info.appendChild(countEl);
+      summaryCard.appendChild(swatch);
+      summaryCard.appendChild(info);
+      grid.appendChild(summaryCard); // Add summary card first
+    }
+
+    // Create individual cards for other grays (already sorted dark to light)
+    otherGrays.forEach(([color, count]) => {
+      const card = createColorCard(color, count);
+      grid.appendChild(card);
+    });
+
+  } else {
+    // --- Original behavior for other families --- 
+    colors.forEach(([color, count]) => {
+      const card = createColorCard(color, count);
+      grid.appendChild(card);
+    });
+  }
+  // --- End Modification ---
   
   section.appendChild(header);
   section.appendChild(grid);
@@ -783,39 +843,17 @@ async function displayColors() {
     currentHexColors = hexColors;
     currentRgbColors = rgbColors;
     
-    // Setup tabs
+    // If no hex colors were found, set the default format selector to RGB before setting up tabs.
+    if (hexColors.size === 0 && rgbColors.size > 0) {
+      const formatSelector = document.getElementById('color-format');
+      if (formatSelector) {
+        formatSelector.value = 'rgb';
+      }
+    }
+
+    // Setup tabs and initial display based on (potentially modified) selector value
     setupTabs();
     
-    // Show hex colors by default
-    const sortedHexColors = Array.from(hexColors.entries())
-      .sort((a, b) => b[1] - a[1]);
-    
-    if (sortedHexColors.length === 0) {
-      // If no hex colors, show RGB colors by default
-      const sortedRgbColors = Array.from(rgbColors.entries())
-        .sort((a, b) => b[1] - a[1]);
-      
-      sortedRgbColors.forEach(([color, count]) => {
-        const card = createColorCard(color, count);
-        grid.appendChild(card);
-      });
-      
-      // Switch to RGB tab
-      const rgbTab = document.querySelector('[data-tab="rgb"]');
-      if (rgbTab) {
-        document.querySelector('.tab-button.active').classList.remove('active');
-        rgbTab.classList.add('active');
-      }
-    } else {
-      // Group colors by family
-      const colorFamilies = groupColorsByFamily(sortedHexColors);
-      
-      // Create sections for each family
-      colorFamilies.forEach((colors, family) => {
-        const section = createFamilySection(family, colors);
-        grid.appendChild(section);
-      });
-    }
   } catch (error) {
     console.error('Error displaying colors:', error);
     const grid = document.getElementById('colors-grid');
