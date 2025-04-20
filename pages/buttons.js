@@ -200,7 +200,7 @@ function createButtonCard(buttonData) {
 }
 
 // Function to update buttons display
-async function updateButtonsDisplay(size = 'all', variant = 'all', type = 'all') {
+async function updateButtonsDisplay() {
   const grid = document.getElementById('buttons-grid');
   
   // Show loading state
@@ -252,8 +252,7 @@ async function updateButtonsDisplay(size = 'all', variant = 'all', type = 'all')
 
     // Send message with timeout
     const messagePromise = chrome.tabs.sendMessage(currentTab.id, { 
-      action: 'getButtons',
-      filters: { size, variant, type }
+      action: 'getButtons'
     });
 
     // Race between timeout and message response
@@ -278,22 +277,8 @@ async function updateButtonsDisplay(size = 'all', variant = 'all', type = 'all')
       return;
     }
 
-    // Filter buttons based on selected options
-    const filteredButtons = buttons.filter(button => {
-      if (size !== 'all' && button.size !== size) {
-        return false;
-      }
-      if (variant !== 'all' && button.variant !== variant) {
-        return false;
-      }
-      if (type !== 'all' && button.type !== type) {
-        return false;
-      }
-      return true;
-    });
-
     // Create cards for each button
-    filteredButtons.forEach(buttonData => {
+    buttons.forEach(buttonData => {
       const card = createButtonCard(buttonData);
       grid.appendChild(card);
     });
@@ -326,23 +311,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (chrome.runtime.connect) {
     chrome.runtime.connect({ name: 'keepAlive' });
   }
-
-  // Set up filter change handlers
-  const sizeSelect = document.getElementById('button-size');
-  const variantSelect = document.getElementById('button-variant');
-  const typeSelect = document.getElementById('button-type');
-
-  const handleFilterChange = () => {
-    updateButtonsDisplay(
-      sizeSelect.value,
-      variantSelect.value,
-      typeSelect.value
-    );
-  };
-
-  sizeSelect.addEventListener('change', handleFilterChange);
-  variantSelect.addEventListener('change', handleFilterChange);
-  typeSelect.addEventListener('change', handleFilterChange);
 
   // Initial load
   await updateButtonsDisplay();
