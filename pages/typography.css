@@ -243,3 +243,24 @@
   line-height: 1.5;
   color: var(--color-text-primary);
 }
+
+.family-header-content {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  cursor: pointer;
+}
+
+.family-header-content:hover .download-icon {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.download-icon {
+  width: 16px;
+  height: 16px;
+  color: #22c55e; /* Green color */
+  opacity: 0;
+  transform: translateY(2px);
+  transition: all 0.2s ease;
+}

@@ -529,7 +529,30 @@ async function updateTypographyDisplay(weight) {
       
       const header = document.createElement('div');
       header.className = 'family-header';
-      header.textContent = family;
+      
+      // Create a container for the family name and icon
+      const headerContent = document.createElement('div');
+      headerContent.className = 'family-header-content';
+      headerContent.innerHTML = `
+        <span>${family}</span>
+        <svg class="download-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 13h8M8 3v7m0 0l3-3m-3 3L5 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+      
+      // Add click handler to copy font family and open Google search
+      headerContent.addEventListener('click', (e) => {
+        // Copy the font family CSS
+        const fontFamilyCSS = `font-family: '${family}';`;
+        copyToClipboard(fontFamilyCSS);
+        
+        // Open Google search in new tab
+        const searchQuery = encodeURIComponent(`${family} font family download`);
+        const searchUrl = `https://www.google.com/search?q=${searchQuery}`;
+        window.open(searchUrl, '_blank');
+      });
+      
+      header.appendChild(headerContent);
       
       const fontsGrid = document.createElement('div');
       fontsGrid.className = 'colors-grid';
