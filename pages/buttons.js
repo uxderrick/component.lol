@@ -351,33 +351,74 @@ function analyzeButtons() {
   // Helper function to check if an anchor tag is likely a button
   function isButtonLikeAnchor(element) {
     const computed = window.getComputedStyle(element);
+    
+    // Check for common button-related classes
     const hasButtonClasses = Array.from(element.classList).some(cls => 
       cls.toLowerCase().includes('btn') || 
-      cls.toLowerCase().includes('button')
+      cls.toLowerCase().includes('button') ||
+      cls.toLowerCase().includes('cta')
     );
-    const hasButtonRole = element.getAttribute('role') === 'button';
-    const hasButtonStyles = 
-      computed.display.includes('flex') || 
-      computed.backgroundColor !== 'rgba(0, 0, 0, 0)' ||
-      computed.border !== 'none' ||
-      computed.borderRadius !== '0px';
     
-    return hasButtonClasses || hasButtonRole || hasButtonStyles;
+    // Check for button-specific attributes
+    const hasButtonAttributes = 
+      element.getAttribute('role') === 'button' ||
+      element.getAttribute('type') === 'button' ||
+      element.hasAttribute('aria-pressed');
+    
+    // Check for button-like styling
+    const hasButtonStyles = 
+      (computed.display.includes('flex') || computed.display.includes('inline-block')) &&
+      (
+        computed.backgroundColor !== 'rgba(0, 0, 0, 0)' ||
+        computed.border !== 'none' ||
+        computed.borderRadius !== '0px' ||
+        computed.padding !== '0px'
+      );
+      
+    // Check for common button-like content
+    const buttonTextContent = element.textContent.toLowerCase().trim();
+    const hasButtonText = 
+      buttonTextContent.includes('submit') ||
+      buttonTextContent.includes('send') ||
+      buttonTextContent.includes('sign') ||
+      buttonTextContent.includes('login') ||
+      buttonTextContent.includes('register') ||
+      buttonTextContent.includes('get') ||
+      buttonTextContent.includes('download') ||
+      buttonTextContent.includes('try');
+      
+    return hasButtonClasses || hasButtonAttributes || (hasButtonStyles && hasButtonText);
+  }
+
+  // Helper function to check if an element is visible and interactive
+  function isVisibleAndInteractive(element) {
+    const computed = window.getComputedStyle(element);
+    const rect = element.getBoundingClientRect();
+    
+    return (
+      computed.display !== 'none' &&
+      computed.visibility !== 'hidden' &&
+      computed.opacity !== '0' &&
+      rect.width > 20 && // Minimum reasonable button width
+      rect.height > 20 && // Minimum reasonable button height
+      !element.disabled &&
+      !element.readOnly
+    );
   }
 
   // Find all button-like elements
   const buttonElements = [
     ...document.getElementsByTagName('button'),
-    ...document.getElementsByTagName('input'),
-    ...document.getElementsByTagName('a'), // Include all <a> tags without filtering
+    ...Array.from(document.getElementsByTagName('input')).filter(input => 
+      ['button', 'submit', 'reset'].includes(input.type)
+    ),
+    ...Array.from(document.getElementsByTagName('a')).filter(isButtonLikeAnchor),
     ...document.querySelectorAll('[role="button"]'),
-    ...document.querySelectorAll('.btn, .button, [class*="btn-"], [class*="button-"]')
-  ].filter(element => {
-    if (element.tagName === 'INPUT') {
-      return ['button', 'submit', 'reset'].includes(element.type);
-    }
-    return true;
-  });
+    ...document.querySelectorAll(
+      '.btn, .button, [class*="btn-"], [class*="button-"], ' +
+      '[class*="-btn"], [class*="-button"], .cta, [class*="cta-"]'
+    )
+  ].filter(element => isVisibleAndInteractive(element));
 
   // ... rest of the existing code ...
 } 

@@ -145,7 +145,7 @@ body {
 /* Components grid */
 .components-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--spacing-md); /* Use medium spacing */
   padding: 0; 
 }
@@ -165,17 +165,25 @@ body {
   );
   /* Default dark text, specific elements will override */
   color: var(--color-text-primary); 
-  /* Add mask to fade pattern towards bottom */
-  -webkit-mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
-  mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
   border-radius: var(--radius-md);
   cursor: pointer;
   box-shadow: var(--shadow-sm); /* Subtle shadow */
   transition: all 0.2s ease-in-out; /* Smoother transition */
-  border: 1px solid var(--color-border); /* Subtle border */
-  padding: var(--spacing-md);
+  border: 0.5px solid var(--color-border); /* Subtle border */
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-xs) var(--spacing-md);
   height: 150px; 
   text-align: left; 
+  overflow: hidden;
+}
+
+/* Add mask as a pseudo-element */
+.component-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent 65%, var(--color-surface) 100%);
+  z-index: 1;
 }
 
 .component-card:hover {
@@ -190,12 +198,13 @@ body {
 }
 
 .card-content {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start; 
   justify-content: space-between; 
   gap: var(--spacing-sm); 
-  z-index: 1;
+  z-index: 2;
   height: 100%;
 }
 
@@ -237,7 +246,7 @@ body {
 }
 
 .card-title {
-  font-weight: 500; /* Slightly bolder */
+  font-weight: 400; /* Slightly bolder */
   font-size: 14px;
   color: var(--color-text-primary); /* Faded/light grey color */
   text-align: left; 
@@ -305,6 +314,7 @@ body {
   bottom: 8px;
   left: 0;
   right: 0; 
+  z-index: 10000000;
 }
 
 .footer-link img {

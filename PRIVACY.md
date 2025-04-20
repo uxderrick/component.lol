@@ -52,15 +52,11 @@ Our extension requires these permissions for core functionality:
    - To inject our analysis scripts
    - Required for extracting design tokens
 
-3. `storage`:
-   - To save extension preferences locally
-   - No website data is stored
-
-4. `tabs`:
+3. `tabs`:
    - To access the current tab's URL
    - Required for asset path resolution
 
-5. `host_permissions`:
+4. `host_permissions`:
    - To analyze design elements across websites
    - Required for cross-origin asset loading
 
