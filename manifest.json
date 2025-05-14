@@ -1,17 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "Component.lol",
-  "version": "0.0.0.2",
+  "name": "Components.lol",
+  "version": "0.0.0.3",
   "author": "Derrick Tsorme",
   "description": "Extract design tokens from any website",
-  "permissions": [
-    "activeTab",
-    "scripting",
-    "tabs"
-  ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
+  "permissions": ["activeTab", "scripting", "tabs"],
+  "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "index.html",
     "default_icon": "component.png"
