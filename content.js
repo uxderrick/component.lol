@@ -709,6 +709,29 @@ function analyzeButtons() {
   }));
 }
 
+// Function to fetch SVG content from a URL
+async function fetchSvgContent(url) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      // Don't throw an error, just return null so the process can continue
+      console.warn(
+        `Could not fetch SVG content from ${url}: ${response.statusText}`
+      );
+      return null;
+    }
+    const text = await response.text();
+    // Basic check to see if it looks like SVG
+    if (text.trim().startsWith("<svg")) {
+      return text;
+    }
+    return null;
+  } catch (error) {
+    console.warn(`Error fetching SVG content from ${url}:`, error);
+    return null;
+  }
+}
+
 // Function to get dimensions of an image
 async function getImageDimensions(url) {
   return new Promise((resolve) => {
@@ -955,13 +978,22 @@ async function scanAssets() {
 
         const dimensions = await getImageDimensions(src);
         const size = await getFileSize(src);
+        const type = getAssetTypeFromUrl(src) || "image";
+        let content = null;
+
+        // If it's an SVG, try to fetch its content
+        if (type === "svg") {
+          content = await fetchSvgContent(src);
+        }
+
         // Pass dimensions safely to isLikelyIcon
         const isIcon = isLikelyIcon(img, src, dimensions || {});
 
         addAsset(src, {
           name: src.split("/").pop().split("?")[0], // Remove query params from name
-          type: getAssetTypeFromUrl(src) || (isIcon ? "icon" : "image"), // Use helper for type
+          type: content ? "svg" : isIcon ? "icon" : type, // Correct type based on content
           url: src,
+          content, // Add the fetched content
           size, // Can be null
           dimensions, // Can be null
           isIcon,

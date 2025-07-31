@@ -78,6 +78,18 @@ async function scanForAssets() {
   }
 }
 
+// Function to fetch a URL and create a blob
+async function fetchAndCreateBlob(url) {
+  const response = await fetch(url, {
+    mode: "cors",
+    credentials: "same-origin",
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch: ${response.statusText}`);
+  }
+  return response.blob();
+}
+
 // Function to create asset card
 function createAssetCard(asset) {
   const card = document.createElement("div");
@@ -277,21 +289,8 @@ function createAssetCard(asset) {
         const blobUrl = URL.createObjectURL(blob);
         previewContent = `<img src="${blobUrl}" alt="${asset.name}" style="max-width: 32px; max-height: 32px; width: auto; height: auto; object-fit: contain;" loading="lazy" onload="URL.revokeObjectURL(this.src)" />`;
       } else if (asset.url) {
-        // If we have a URL for the icon, create an object URL from fetching it
-        fetch(asset.url)
-          .then((response) => response.blob())
-          .then((blob) => {
-            const blobUrl = URL.createObjectURL(blob);
-            const img = card.querySelector(".icon-preview-placeholder");
-            if (img) {
-              img.src = blobUrl;
-              img.onload = () => URL.revokeObjectURL(blobUrl);
-            }
-          })
-          .catch((error) => console.error("Error loading icon:", error));
-
-        // Use a placeholder while loading
-        previewContent = `<img class="icon-preview-placeholder" alt="${asset.name}" style="max-width: 32px; max-height: 32px; width: auto; height: auto; object-fit: contain;" loading="lazy" />`;
+        // Fallback for icons without content (e.g., raster images)
+        previewContent = `<img src="${asset.url}" alt="${asset.name}" style="max-width: 32px; max-height: 32px; width: auto; height: auto; object-fit: contain;" loading="lazy" />`;
       }
     } catch (error) {
       console.error("Error creating icon preview:", error);
@@ -464,20 +463,23 @@ function createAssetCard(asset) {
     e.stopPropagation(); // Prevent card click
     try {
       let blob;
-      if (asset.type === "svg" || (isIcon && asset.content)) {
-        // For SVGs and SVG icons, use the content directly
+      if (asset.type === "svg") {
+        if (asset.content) {
+          // For SVGs with inline content, use the content directly
+          blob = new Blob([asset.content], { type: "image/svg+xml" });
+        } else if (asset.url) {
+          // For SVGs with only a URL, fetch and create a blob
+          blob = await fetchAndCreateBlob(asset.url);
+        }
+      } else if (isIcon && asset.content) {
+        // For SVG icons with inline content
         blob = new Blob([asset.content], { type: "image/svg+xml" });
       } else if (["mp4", "webm", "mov", "ogg", "m4v"].includes(asset.type)) {
         // For videos, fetch with proper CORS headers
-        const response = await fetch(asset.url, {
-          mode: "cors",
-          credentials: "same-origin",
-        });
-        blob = await response.blob();
+        blob = await fetchAndCreateBlob(asset.url);
       } else {
         // For other assets, fetch the URL
-        const response = await fetch(asset.url);
-        blob = await response.blob();
+        blob = await fetchAndCreateBlob(asset.url);
       }
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
