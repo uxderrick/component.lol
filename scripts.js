@@ -171,12 +171,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const colorsCard = document.getElementById("colors-card");
   if (colorsCard) {
     colorsCard.addEventListener("click", () => {
-      window.location.href = "pages/colors.html";
+      window.location.href = "pages/colors/colors.html";
     });
     // Add keydown listener for accessibility
     colorsCard.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
-        window.location.href = "pages/colors.html";
+        window.location.href = "pages/colors/colors.html";
       }
     });
   }
@@ -185,12 +185,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const typographyCard = document.querySelector(".typography-card"); // Use class selector as ID might be missing
   if (typographyCard) {
     typographyCard.addEventListener("click", () => {
-      window.location.href = "pages/typography.html";
+      window.location.href = "pages/typography/typography.html";
     });
     // Add keydown listener for accessibility
     typographyCard.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
-        window.location.href = "pages/typography.html";
+        window.location.href = "pages/typography/typography.html";
       }
     });
   }
@@ -199,12 +199,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const buttonsCard = document.querySelector(".buttons-card"); // Use class selector
   if (buttonsCard) {
     buttonsCard.addEventListener("click", () => {
-      window.location.href = "pages/buttons.html";
+      window.location.href = "pages/buttons/buttons.html";
     });
     // Add keydown listener for accessibility
     buttonsCard.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
-        window.location.href = "pages/buttons.html";
+        window.location.href = "pages/buttons/buttons.html";
       }
     });
   }
@@ -213,12 +213,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const assetsCard = document.querySelector(".assets-card"); // Use class selector
   if (assetsCard) {
     assetsCard.addEventListener("click", () => {
-      window.location.href = "pages/assets.html";
+      window.location.href = "pages/assets/assets.html";
     });
     // Add keydown listener for accessibility
     assetsCard.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
-        window.location.href = "pages/assets.html";
+        window.location.href = "pages/assets/assets.html";
       }
     });
   }
