@@ -1,0 +1,243 @@
+:root {
+  --indigo-500: #5856d6;
+  --indigo-50: #efeffb;
+  --neutral-600: #48484a;
+  --neutral-500: #3a3a3c;
+  --neutral-400: #8e8e93;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.landing-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* justify-content: space-between; */
+  padding: 24px 0px 56px 0px;
+  box-sizing: border-box;
+  gap: 32px;
+}
+
+.main-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.icon-container {
+  background-color: var(--indigo-50);
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--neutral-600);
+  margin: 0;
+  line-height: 26px;
+  letter-spacing: -0.24px;
+}
+
+.subtitle {
+  font-size: 16px;
+  font-weight: 500;
+  background: linear-gradient(to right, #bebdef 37.418%, #a956d6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0;
+  line-height: 26px;
+  letter-spacing: -0.27px;
+}
+
+.stats {
+  text-align: center;
+  color: #8e8e93;
+  font-size: 14px;
+  font-weight: 550;
+  line-height: 18px;
+  position: relative;
+  display: flex;
+  gap: 24px;
+  flex-direction: row;
+}
+
+.stats p {
+  margin: 0;
+}
+
+.stats-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-direction: column;
+  width: 80px;
+}
+
+.gradient-image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: -1;
+  width: 120%;
+  height: 100%;
+}
+
+.buttons-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 300px;
+}
+
+.sign-in-button {
+  background-color: var(--indigo-500);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  line-height: 24px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  &:hover {
+    background-color: #4a48c0;
+  }
+}
+
+.anonymous-button {
+  background-color: rgba(255, 255, 255, 0.5);
+  color: #6f6f6f;
+  border: 1.242px solid #dfdef7;
+  border-radius: 14px;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  line-height: 24px;
+  height: 46px;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.8);
+    color: var(--neutral-600);
+  }
+}
+
+.footer {
+  display: flex;
+  gap: 16px;
+  color: var(--neutral-400);
+  font-size: 14px;
+  font-weight: 550;
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.footer a {
+  color: inherit;
+  text-decoration: none;
+  line-height: 24px;
+}
+
+/* OG Image Container */
+.og-image-container {
+  position: relative;
+  width: 300px;
+  height: 180px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: #181818;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.og-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+  display: block;
+  background: #222;
+}
+
+.og-image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.og-stats-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  color: #fff;
+  padding: 16px;
+  border-bottom-left-radius: 12px;
+  border-top-right-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 650;
+  z-index: 2;
+  min-width: 90px;
+  align-items: flex-start;
+}
+
+.og-stats-overlay span {
+  margin-bottom: 2px;
+}
+
+.og-image-container[hidden] {
+  display: none !important;
+}
+
+.og-fallback-container {
+  width: 300px;
+  height: 160px;
+  margin: 24px auto 0 auto;
+  border-radius: 12px;
+  border: 1px solid #00000010;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.01);
+}
+.og-fallback-container img {
+  height: auto;
+  opacity: 0.8;
+}
+.og-fallback-container[hidden] {
+  display: none !important;
+}

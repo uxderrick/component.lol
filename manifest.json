@@ -7,7 +7,7 @@
   "permissions": ["activeTab", "scripting", "tabs"],
   "host_permissions": ["<all_urls>"],
   "action": {
-    "default_popup": "index.html",
+    "default_popup": "pages/landing/landing.html",
     "default_icon": "component.png"
   },
   "content_scripts": [
